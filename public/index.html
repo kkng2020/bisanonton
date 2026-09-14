@@ -19,6 +19,16 @@
 </head>
 <body>
 
+  <!-- SVG Filter Definition for Video Sharpening (Hidden) -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden">
+    <defs>
+      <filter id="svgSharpen" color-interpolation-filters="sRGB">
+        <feConvolveMatrix id="sharpenKernel" order="3" preserveAlpha="true"
+          kernelMatrix="0 0 0 0 1 0 0 0 0" />
+      </filter>
+    </defs>
+  </svg>
+
   <!-- Top Navigation -->
   <header class="navbar">
     <div class="logo-container" onclick="window.location.reload()">
@@ -124,6 +134,64 @@
             </div>
           </div>
 
+          <!-- Video Enhancement Panel (Floating) -->
+          <div class="enhance-panel hidden" id="enhancePanel">
+            <div class="enhance-panel-header">
+              <span class="enhance-panel-title">✨ Video Enhancement</span>
+              <button class="enhance-panel-close" id="enhancePanelClose">✕</button>
+            </div>
+
+            <!-- Preset Buttons -->
+            <div class="enhance-presets">
+              <button class="enhance-preset-btn active" data-preset="original">Original</button>
+              <button class="enhance-preset-btn" data-preset="cinema">🎬 Cinema</button>
+              <button class="enhance-preset-btn" data-preset="vivid">🌈 Vivid</button>
+              <button class="enhance-preset-btn" data-preset="sharp">🔪 Sharp</button>
+            </div>
+
+            <!-- Manual Sliders -->
+            <div class="enhance-sliders">
+              <div class="enhance-slider-group">
+                <div class="enhance-slider-label">
+                  <span>🔍 Sharpness</span>
+                  <span class="enhance-slider-value" id="valSharpness">0%</span>
+                </div>
+                <input type="range" class="enhance-slider" id="sliderSharpness" min="0" max="100" value="0" data-prop="sharpness">
+              </div>
+              <div class="enhance-slider-group">
+                <div class="enhance-slider-label">
+                  <span>☀️ Brightness</span>
+                  <span class="enhance-slider-value" id="valBrightness">100%</span>
+                </div>
+                <input type="range" class="enhance-slider" id="sliderBrightness" min="50" max="150" value="100" data-prop="brightness">
+              </div>
+              <div class="enhance-slider-group">
+                <div class="enhance-slider-label">
+                  <span>🎛️ Contrast</span>
+                  <span class="enhance-slider-value" id="valContrast">100%</span>
+                </div>
+                <input type="range" class="enhance-slider" id="sliderContrast" min="50" max="150" value="100" data-prop="contrast">
+              </div>
+              <div class="enhance-slider-group">
+                <div class="enhance-slider-label">
+                  <span>🎨 Saturation</span>
+                  <span class="enhance-slider-value" id="valSaturation">100%</span>
+                </div>
+                <input type="range" class="enhance-slider" id="sliderSaturation" min="0" max="200" value="100" data-prop="saturation">
+              </div>
+              <div class="enhance-slider-group">
+                <div class="enhance-slider-label">
+                  <span>🔥 Warmth</span>
+                  <span class="enhance-slider-value" id="valWarmth">0%</span>
+                </div>
+                <input type="range" class="enhance-slider" id="sliderWarmth" min="0" max="50" value="0" data-prop="warmth">
+              </div>
+            </div>
+
+            <!-- Reset Button -->
+            <button class="enhance-reset-btn" id="enhanceResetBtn">🔄 Reset ke Original</button>
+          </div>
+
           <!-- Custom Player Control Bar -->
           <div class="custom-controls-bar" id="customControlsBar">
             <!-- Progress Bar -->
@@ -194,6 +262,9 @@
                   <button class="ctrl-btn" id="btnMute" title="Mute / Unmute">🔊</button>
                   <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.05" value="1">
                 </div>
+
+                <!-- Video Enhancement Toggle -->
+                <button class="ctrl-btn" id="btnEnhance" title="Video Enhancement (E)">✨</button>
 
                 <!-- Fullscreen -->
                 <button class="ctrl-btn" id="btnFullscreen" title="Layar Penuh (F)">⛶</button>
