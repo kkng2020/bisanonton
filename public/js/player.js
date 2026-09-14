@@ -45,6 +45,13 @@ class BisaPlayer {
     this.volumeSlider = document.getElementById('volumeSlider');
     this.btnFullscreen = document.getElementById('btnFullscreen');
 
+    // Video Enhancement
+    this.btnEnhance = document.getElementById('btnEnhance');
+    this.enhancePanel = document.getElementById('enhancePanel');
+    this.enhancePanelClose = document.getElementById('enhancePanelClose');
+    this.enhanceResetBtn = document.getElementById('enhanceResetBtn');
+    this.sharpenKernel = document.getElementById('sharpenKernel');
+
     // Sidebar & Autoplay
     this.sidebar = document.getElementById('episodeSidebar');
     this.episodeList = document.getElementById('episodeList');
@@ -64,7 +71,18 @@ class BisaPlayer {
     this.controlsTimeout = null;
     this.isDraggingSeek = false;
 
+    // Enhancement State
+    this.enhancePresets = {
+      original:  { sharpness: 0,  brightness: 100, contrast: 100, saturation: 100, warmth: 0  },
+      cinema:    { sharpness: 30, brightness: 95,  contrast: 115, saturation: 90,  warmth: 10 },
+      vivid:     { sharpness: 20, brightness: 105, contrast: 110, saturation: 140, warmth: 0  },
+      sharp:     { sharpness: 80, brightness: 100, contrast: 105, saturation: 105, warmth: 0  }
+    };
+    this.enhanceValues = { ...this.enhancePresets.original };
+    this.activePreset = 'original';
+
     this.initEvents();
+    this.initEnhancement();
   }
 
   initEvents() {
@@ -130,6 +148,10 @@ class BisaPlayer {
       if (this.speedMenu && !this.speedMenu.contains(e.target) && e.target !== this.btnSpeed) {
         this.speedMenu.classList.remove('show');
       }
+      // Close enhance panel when clicking outside
+      if (this.enhancePanel && !this.enhancePanel.contains(e.target) && e.target !== this.btnEnhance) {
+        this.enhancePanel.classList.add('hidden');
+      }
     });
 
     // Progress Bar Seeking
@@ -192,6 +214,9 @@ class BisaPlayer {
       } else if (e.key === 'm' || e.key === 'M') {
         e.preventDefault();
         this.toggleMute();
+      } else if (e.key === 'e' || e.key === 'E') {
+        e.preventDefault();
+        this.toggleEnhancePanel();
       }
     });
   }
@@ -676,7 +701,223 @@ class BisaPlayer {
     this.modal.classList.remove('active');
     if (this.speedMenu) this.speedMenu.classList.remove('show');
     if (this.qualityMenu) this.qualityMenu.classList.remove('show');
+    if (this.enhancePanel) this.enhancePanel.classList.add('hidden');
     document.body.style.overflow = '';
+  }
+
+  // ========================================================
+  // VIDEO ENHANCEMENT SYSTEM
+  // Real-time GPU-accelerated video filters
+  // ========================================================
+
+  initEnhancement() {
+    // Load saved preferences from localStorage
+    this.loadEnhancePrefs();
+
+    // Enhancement button toggle
+    if (this.btnEnhance) {
+      this.btnEnhance.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleEnhancePanel();
+      });
+    }
+
+    // Panel close button
+    if (this.enhancePanelClose) {
+      this.enhancePanelClose.addEventListener('click', () => {
+        this.enhancePanel.classList.add('hidden');
+      });
+    }
+
+    // Preset buttons
+    const presetBtns = document.querySelectorAll('.enhance-preset-btn');
+    presetBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const preset = btn.dataset.preset;
+        this.setEnhancePreset(preset);
+      });
+    });
+
+    // Slider inputs — real-time update
+    const sliders = document.querySelectorAll('.enhance-slider');
+    sliders.forEach(slider => {
+      slider.addEventListener('input', () => {
+        const prop = slider.dataset.prop;
+        const value = parseInt(slider.value);
+        this.enhanceValues[prop] = value;
+        this.activePreset = 'custom';
+        this.updateEnhanceUI();
+        this.applyEnhancement();
+        this.saveEnhancePrefs();
+      });
+    });
+
+    // Reset button
+    if (this.enhanceResetBtn) {
+      this.enhanceResetBtn.addEventListener('click', () => {
+        this.setEnhancePreset('original');
+      });
+    }
+
+    // Apply saved enhancement on init
+    this.updateEnhanceUI();
+    this.applyEnhancement();
+  }
+
+  toggleEnhancePanel() {
+    if (!this.enhancePanel) return;
+    // Close other menus
+    if (this.speedMenu) this.speedMenu.classList.remove('show');
+    if (this.qualityMenu) this.qualityMenu.classList.remove('show');
+    this.enhancePanel.classList.toggle('hidden');
+  }
+
+  setEnhancePreset(presetName) {
+    const preset = this.enhancePresets[presetName];
+    if (!preset) return;
+
+    this.activePreset = presetName;
+    this.enhanceValues = { ...preset };
+    this.updateEnhanceUI();
+    this.applyEnhancement();
+    this.saveEnhancePrefs();
+
+    // Flash toast
+    const presetNames = { original: 'Original', cinema: '🎬 Cinema', vivid: '🌈 Vivid', sharp: '🔪 Sharp' };
+    this.flashCenterIcon(`✨ ${presetNames[presetName] || presetName}`);
+  }
+
+  applyEnhancement() {
+    if (!this.video) return;
+
+    const { sharpness, brightness, contrast, saturation, warmth } = this.enhanceValues;
+
+    // 1. Build CSS filter chain
+    let filterParts = [];
+
+    // Sharpness via SVG filter
+    if (sharpness > 0 && this.sharpenKernel) {
+      // Unsharp mask: center value increases with sharpness
+      // kernel = [0, -s, 0, -s, 1+4s, -s, 0, -s, 0]
+      const s = sharpness / 100; // 0 to 1
+      const center = 1 + (4 * s);
+      const edge = -s;
+      const kernel = `0 ${edge} 0 ${edge} ${center} ${edge} 0 ${edge} 0`;
+      this.sharpenKernel.setAttribute('kernelMatrix', kernel);
+      filterParts.push('url(#svgSharpen)');
+    } else if (this.sharpenKernel) {
+      // Reset to identity kernel (no sharpening)
+      this.sharpenKernel.setAttribute('kernelMatrix', '0 0 0 0 1 0 0 0 0');
+    }
+
+    // Brightness
+    if (brightness !== 100) {
+      filterParts.push(`brightness(${brightness / 100})`);
+    }
+
+    // Contrast
+    if (contrast !== 100) {
+      filterParts.push(`contrast(${contrast / 100})`);
+    }
+
+    // Saturation
+    if (saturation !== 100) {
+      filterParts.push(`saturate(${saturation / 100})`);
+    }
+
+    // Warmth (sepia + hue-rotate to shift towards warm tones)
+    if (warmth > 0) {
+      filterParts.push(`sepia(${warmth / 100})`);
+      filterParts.push(`hue-rotate(-10deg)`);
+    }
+
+    // 2. Apply combined filter string to video element
+    if (filterParts.length > 0) {
+      this.video.style.filter = filterParts.join(' ');
+    } else {
+      this.video.style.filter = 'none';
+    }
+
+    // 3. Update enhance button active state
+    const isEnhanced = sharpness > 0 || brightness !== 100 || contrast !== 100 || saturation !== 100 || warmth > 0;
+    if (this.btnEnhance) {
+      if (isEnhanced) {
+        this.btnEnhance.classList.add('enhance-active');
+      } else {
+        this.btnEnhance.classList.remove('enhance-active');
+      }
+    }
+  }
+
+  updateEnhanceUI() {
+    const { sharpness, brightness, contrast, saturation, warmth } = this.enhanceValues;
+
+    // Update slider positions
+    const sliderMap = {
+      sliderSharpness: sharpness,
+      sliderBrightness: brightness,
+      sliderContrast: contrast,
+      sliderSaturation: saturation,
+      sliderWarmth: warmth
+    };
+
+    for (const [id, val] of Object.entries(sliderMap)) {
+      const slider = document.getElementById(id);
+      if (slider) slider.value = val;
+    }
+
+    // Update value labels
+    const valMap = {
+      valSharpness: `${sharpness}%`,
+      valBrightness: `${brightness}%`,
+      valContrast: `${contrast}%`,
+      valSaturation: `${saturation}%`,
+      valWarmth: `${warmth}%`
+    };
+
+    for (const [id, text] of Object.entries(valMap)) {
+      const label = document.getElementById(id);
+      if (label) label.textContent = text;
+    }
+
+    // Update preset active state
+    const presetBtns = document.querySelectorAll('.enhance-preset-btn');
+    presetBtns.forEach(btn => {
+      if (btn.dataset.preset === this.activePreset) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+  }
+
+  saveEnhancePrefs() {
+    try {
+      const data = {
+        values: this.enhanceValues,
+        preset: this.activePreset
+      };
+      localStorage.setItem('bisanonton_enhance', JSON.stringify(data));
+    } catch (e) {
+      // localStorage might be unavailable
+    }
+  }
+
+  loadEnhancePrefs() {
+    try {
+      const saved = localStorage.getItem('bisanonton_enhance');
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.values) {
+          this.enhanceValues = { ...this.enhancePresets.original, ...data.values };
+        }
+        if (data.preset) {
+          this.activePreset = data.preset;
+        }
+      }
+    } catch (e) {
+      // Fallback to defaults
+    }
   }
 }
 
