@@ -706,6 +706,236 @@ video#main-video-element {
 }
 
 /* ========================================================
+   VIDEO ENHANCEMENT PANEL
+   Floating settings panel for real-time video filters.
+   ======================================================== */
+
+.enhance-panel {
+  position: absolute;
+  bottom: 5.5rem;
+  right: 1rem;
+  width: 300px;
+  background: rgba(14, 18, 28, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  z-index: 30;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 15px rgba(255, 51, 102, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  animation: enhancePanelIn 0.25s ease;
+  max-height: calc(100vh - 8rem);
+  overflow-y: auto;
+}
+
+.enhance-panel.hidden {
+  display: none;
+}
+
+@keyframes enhancePanelIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Panel Header */
+.enhance-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.enhance-panel-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.3px;
+}
+
+.enhance-panel-close {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #94a3b8;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: var(--transition);
+}
+
+.enhance-panel-close:hover {
+  background: rgba(255, 51, 102, 0.5);
+  color: #fff;
+}
+
+/* Preset Buttons */
+.enhance-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+}
+
+.enhance-preset-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  padding: 0.45rem 0.3rem;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  text-align: center;
+}
+
+.enhance-preset-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.enhance-preset-btn.active {
+  background: rgba(255, 51, 102, 0.2);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Sliders */
+.enhance-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.enhance-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.enhance-slider-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+}
+
+.enhance-slider-value {
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--primary);
+  min-width: 36px;
+  text-align: right;
+}
+
+.enhance-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.enhance-slider:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Slider Thumb */
+.enhance-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px rgba(255, 51, 102, 0.5), 0 2px 4px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.enhance-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 10px rgba(255, 51, 102, 0.7), 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.enhance-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+  box-shadow: 0 0 6px rgba(255, 51, 102, 0.5), 0 2px 4px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+/* Slider Track Fill (Webkit) */
+.enhance-slider::-webkit-slider-runnable-track {
+  height: 5px;
+  border-radius: 3px;
+}
+
+/* Reset Button */
+.enhance-reset-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  padding: 0.55rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+}
+
+.enhance-reset-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Enhancement button active state */
+.ctrl-btn.enhance-active {
+  color: var(--primary);
+  text-shadow: 0 0 8px rgba(255, 51, 102, 0.6);
+}
+
+/* Enhancement panel inside fullscreen */
+.video-container:fullscreen .enhance-panel,
+.video-container:-webkit-full-screen .enhance-panel {
+  position: fixed;
+  bottom: 5.5rem;
+  right: 1rem;
+  z-index: 110;
+}
+
+/* Responsive Enhancement Panel */
+@media (max-width: 480px) {
+  .enhance-panel {
+    width: calc(100vw - 2rem);
+    right: 0;
+    left: 0;
+    margin: 0 auto;
+    bottom: 4.5rem;
+  }
+  .enhance-presets {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ========================================================
    FULLSCREEN MODE - Fit to Aspect Ratio
    Video fills the entire screen proportionally (no stretch).
    Works on all screen sizes: TV 1080p, phone 21:9, etc.
