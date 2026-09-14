@@ -614,13 +614,23 @@ class BisaPlayer {
 
   // Fullscreen
   toggleFullscreen() {
-    if (!document.fullscreenElement) {
-      if (this.videoContainer.requestFullscreen) {
-        this.videoContainer.requestFullscreen();
+    const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    if (!fsEl) {
+      // Enter fullscreen on the video container
+      const el = this.videoContainer;
+      if (el.requestFullscreen) {
+        el.requestFullscreen();
+      } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen(); // Android TV / older Chrome
+      } else if (el.webkitEnterFullscreen) {
+        // iOS fallback — request on video element directly
+        this.video.webkitEnterFullscreen();
       }
     } else {
       if (document.exitFullscreen) {
         document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
       }
     }
   }
