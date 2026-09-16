@@ -187,11 +187,19 @@ function setupEventListeners() {
   // Buka Modal Tambah
   btnOpenAddModal.addEventListener('click', () => openAddModal());
 
-  // Tutup Modal
+  // Tutup Modal (Hanya melalui tombol Close ✕, Batal, atau Simpan)
   modalCloseBtn.addEventListener('click', () => closeModal());
   btnCancelModal.addEventListener('click', () => closeModal());
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeModal();
+    if (e.target === modal) {
+      // Cegah popup tertutup saat klik tidak sengaja di luar modal agar input tidak hilang
+      const box = modal.querySelector('.modal-box');
+      if (box) {
+        box.classList.remove('modal-shake');
+        void box.offsetWidth;
+        box.classList.add('modal-shake');
+      }
+    }
   });
 
   // Ganti Tipe Konten (Film vs Serial)
