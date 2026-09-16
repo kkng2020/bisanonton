@@ -48,6 +48,7 @@ const seriesStreamSection = document.getElementById('seriesStreamSection');
 const formStreamUrl = document.getElementById('formStreamUrl');
 const btnAddEpisode = document.getElementById('btnAddEpisode');
 const episodeInputsContainer = document.getElementById('episodeInputsContainer');
+const formIsFeatured = document.getElementById('formIsFeatured');
 
 document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
@@ -256,7 +257,7 @@ function renderAdminTable() {
   if (filtered.length === 0) {
     adminTableBody.innerHTML = `
       <tr>
-        <td colspan="4" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+        <td colspan="5" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
           Tidak ada data film atau serial yang sesuai.
         </td>
       </tr>
@@ -296,6 +297,12 @@ function renderAdminTable() {
         </span>
       </td>
       <td>
+        <button type="button" class="btn-star ${item.is_featured ? 'starred' : ''}" onclick="toggleFeatured('${item.id}')" title="${item.is_featured ? 'Hapus dari Cover Hero' : 'Jadikan Cover Hero'}">
+          <span>${item.is_featured ? '⭐' : '☆'}</span>
+          <span>${item.is_featured ? 'Cover Aktif' : 'Pilih Cover'}</span>
+        </button>
+      </td>
+      <td>
         ${streamInfo}
       </td>
       <td style="text-align: right;">
@@ -314,6 +321,37 @@ function renderAdminTable() {
   });
 }
 
+// Toggle Featured Cover Hero Langsung dari Tabel
+window.toggleFeatured = async function(id) {
+  const adminPass = getAdminPassword();
+  try {
+    const res = await fetch(`/api/movies/${id}/toggle-featured`, {
+      method: 'PATCH',
+      headers: {
+        'x-admin-password': adminPass
+      }
+    });
+
+    if (res.status === 401) {
+      showToast('Akses ditolak: Password admin diperlukan atau salah.');
+      clearAdminPassword();
+      showLockedUI();
+      return;
+    }
+
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.is_featured ? 'Film berhasil dijadikan Cover Hero! ⭐' : 'Film dicopot dari Cover Hero.');
+      await loadAdminMovies();
+    } else {
+      showToast(data.message || 'Gagal mengubah status cover hero.');
+    }
+  } catch (error) {
+    console.error('Error toggling featured:', error);
+    showToast('Terjadi kesalahan saat mengubah status cover hero.');
+  }
+};
+
 // Buka Modal Tambah Film
 function openAddModal() {
   isEditMode = false;
@@ -325,6 +363,7 @@ function openAddModal() {
   toggleContentType('movie');
   updateCoverPreview('');
   episodeInputsContainer.innerHTML = '';
+  if (formIsFeatured) formIsFeatured.checked = false;
 
   modal.classList.add('active');
 }
@@ -344,6 +383,7 @@ window.editMovie = function(id) {
   formDesc.value = item.description || '';
 
   updateCoverPreview(item.cover_url);
+  if (formIsFeatured) formIsFeatured.checked = Boolean(item.is_featured);
 
   if (item.type === 'series') {
     typeSeriesRadio.checked = true;
@@ -483,6 +523,8 @@ async function handleFormSubmit(e) {
     }
   }
 
+  const is_featured = formIsFeatured ? formIsFeatured.checked : false;
+
   const payload = {
     title,
     type,
@@ -492,7 +534,8 @@ async function handleFormSubmit(e) {
     genre,
     description,
     stream_url,
-    episodes
+    episodes,
+    is_featured
   };
 
   const saveBtn = document.getElementById('btnSaveMovie');
