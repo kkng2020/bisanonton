@@ -8,39 +8,20 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎬</text></svg>">
   
   <!-- CSS Stylesheets -->
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/player.css?v=1.1.0">
+  <link rel="stylesheet" href="css/style.css?v=1.2.1">
+  <link rel="stylesheet" href="css/player.css?v=1.2.1">
 
   <!-- Theme Manager (Load in head to prevent theme flashing) -->
   <script src="js/theme.js"></script>
-
-  <!-- Hls.js CDN for M3U8 streaming -->
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
 
-  <!-- SVG Filter Definition for Video Sharpening (Hidden) -->
-  <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden">
-    <defs>
-      <filter id="svgSharpen" color-interpolation-filters="sRGB">
-        <feConvolveMatrix id="sharpenKernel" order="3" preserveAlpha="true"
-          kernelMatrix="0 0 0 0 1 0 0 0 0" />
-      </filter>
-    </defs>
-  </svg>
 
-  <!-- Top Navigation -->
-  <header class="navbar">
+  <!-- Top Navigation (Auto-reveals on scroll) -->
+  <header class="navbar" id="mainNavbar">
     <div class="logo-container" onclick="window.location.reload()">
       <div class="logo-badge">▶</div>
       <div class="logo-text">BISA<span>NONTON</span></div>
-    </div>
-
-    <div class="nav-center">
-      <div class="search-wrapper">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="searchInput" class="search-input" placeholder="Cari judul film, serial, atau genre...">
-      </div>
     </div>
 
     <div class="nav-actions">
@@ -52,14 +33,21 @@
     </div>
   </header>
 
-  <!-- Hero Highlight Banner -->
+  <!-- Hero Highlight Banner (100vh Fullscreen Edge-to-Edge) -->
   <section class="hero-section" id="heroBanner" style="display: none;">
+    <!-- Media Layer: Poster image fading into video preview -->
+    <div class="hero-media-bg">
+      <div class="hero-poster-layer" id="heroPosterLayer"></div>
+      <video class="hero-video-layer" id="heroVideoLayer" playsinline muted loop></video>
+    </div>
+
     <div class="hero-overlay"></div>
+
     <div class="hero-content">
       <div class="hero-badge" id="heroBadge">Featured</div>
       <h1 class="hero-title" id="heroTitle">Memuat Judul Film...</h1>
       <div class="hero-meta" id="heroMeta">
-        <span id="heroYear">2024</span> • <span id="heroGenre">Action</span>
+        <span id="heroYear">2026</span> • <span id="heroGenre">Favorit</span>
       </div>
       <p class="hero-desc" id="heroDesc">Sinopsis ringkas film unggulan.</p>
       <div class="hero-buttons">
@@ -68,18 +56,40 @@
         </button>
       </div>
     </div>
+
+    <!-- Netflix-style floating Sound Toggle (Mute / Unmute with 70% fadein) -->
+    <button class="hero-sound-btn" id="heroSoundToggle" title="Nyalakan Suara Cuplikan (Volume 70%)">
+      <span class="sound-icon" id="heroSoundIcon">🔇</span>
+      <span class="sound-label" id="heroSoundLabel">Suara (70%)</span>
+    </button>
+
+    <!-- Scroll Down Helper -->
+    <div class="hero-scroll-down" id="heroScrollDown" title="Jelajahi Koleksi Film">
+      <span>Jelajahi Koleksi Film</span>
+      <div class="scroll-arrow">↓</div>
+    </div>
   </section>
 
   <!-- Main Content Area -->
-  <main class="container">
+  <main class="container" id="catalogSection">
     <div class="section-header">
-      <h2 class="section-title">
-        <span>🎬</span> Koleksi Video Favorit
-      </h2>
-      <div class="filter-tabs">
-        <button class="filter-btn active" data-type="all">Semua</button>
-        <button class="filter-btn" data-type="movie">Film</button>
-        <button class="filter-btn" data-type="series">Serial TV</button>
+      <div class="section-title-wrapper">
+        <h2 class="section-title">
+          <span>🎬</span> Koleksi Video Favorit
+        </h2>
+      </div>
+
+      <div class="section-controls-wrapper">
+        <div class="filter-tabs">
+          <button class="filter-btn active" data-type="all">Semua</button>
+          <button class="filter-btn" data-type="movie">Film</button>
+          <button class="filter-btn" data-type="series">Serial TV</button>
+        </div>
+
+        <div class="search-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" class="search-input" placeholder="Cari judul atau genre...">
+        </div>
       </div>
     </div>
 
@@ -109,9 +119,30 @@
           <!-- Main Video Element -->
           <video id="main-video-element" playsinline></video>
 
-          <!-- Center Play/Pause Flash Overlay -->
-          <div class="center-play-overlay" id="centerPlayOverlay">
-            <div class="center-play-btn-circle" id="centerPlayIcon">▶</div>
+          <!-- Video Center Controls Overlay (Transparent with 3 action buttons) -->
+          <div class="video-center-controls" id="centerControlsOverlay">
+            <!-- Rewind 10s -->
+            <button class="center-btn center-btn-skip" id="centerBtnRewind" title="Mundur 10 Detik (J atau ←)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 4v6h6"></path>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+              </svg>
+              <span class="center-skip-badge">10</span>
+            </button>
+
+            <!-- Play / Pause -->
+            <button class="center-btn center-btn-playpause" id="centerBtnPlayPause" title="Putar / Jeda (Spasi)">
+              <span id="centerPlayIcon">▶</span>
+            </button>
+
+            <!-- Forward 10s -->
+            <button class="center-btn center-btn-skip" id="centerBtnForward" title="Maju 10 Detik (L atau →)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 4v6h-6"></path>
+                <path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"></path>
+              </svg>
+              <span class="center-skip-badge">10</span>
+            </button>
           </div>
 
           <!-- Spinner Loading -->
@@ -134,66 +165,16 @@
             </div>
           </div>
 
-          <!-- Video Enhancement Panel (Floating) -->
-          <div class="enhance-panel hidden" id="enhancePanel">
-            <div class="enhance-panel-header">
-              <span class="enhance-panel-title">✨ Video Enhancement</span>
-              <button class="enhance-panel-close" id="enhancePanelClose">✕</button>
-            </div>
-
-            <!-- Preset Buttons -->
-            <div class="enhance-presets">
-              <button class="enhance-preset-btn active" data-preset="original">Original</button>
-              <button class="enhance-preset-btn" data-preset="cinema">🎬 Cinema</button>
-              <button class="enhance-preset-btn" data-preset="vivid">🌈 Vivid</button>
-              <button class="enhance-preset-btn" data-preset="sharp">🔪 Sharp</button>
-            </div>
-
-            <!-- Manual Sliders -->
-            <div class="enhance-sliders">
-              <div class="enhance-slider-group">
-                <div class="enhance-slider-label">
-                  <span>🔍 Sharpness</span>
-                  <span class="enhance-slider-value" id="valSharpness">0%</span>
-                </div>
-                <input type="range" class="enhance-slider" id="sliderSharpness" min="0" max="100" value="0" data-prop="sharpness">
-              </div>
-              <div class="enhance-slider-group">
-                <div class="enhance-slider-label">
-                  <span>☀️ Brightness</span>
-                  <span class="enhance-slider-value" id="valBrightness">100%</span>
-                </div>
-                <input type="range" class="enhance-slider" id="sliderBrightness" min="50" max="150" value="100" data-prop="brightness">
-              </div>
-              <div class="enhance-slider-group">
-                <div class="enhance-slider-label">
-                  <span>🎛️ Contrast</span>
-                  <span class="enhance-slider-value" id="valContrast">100%</span>
-                </div>
-                <input type="range" class="enhance-slider" id="sliderContrast" min="50" max="150" value="100" data-prop="contrast">
-              </div>
-              <div class="enhance-slider-group">
-                <div class="enhance-slider-label">
-                  <span>🎨 Saturation</span>
-                  <span class="enhance-slider-value" id="valSaturation">100%</span>
-                </div>
-                <input type="range" class="enhance-slider" id="sliderSaturation" min="0" max="200" value="100" data-prop="saturation">
-              </div>
-              <div class="enhance-slider-group">
-                <div class="enhance-slider-label">
-                  <span>🔥 Warmth</span>
-                  <span class="enhance-slider-value" id="valWarmth">0%</span>
-                </div>
-                <input type="range" class="enhance-slider" id="sliderWarmth" min="0" max="50" value="0" data-prop="warmth">
-              </div>
-            </div>
-
-            <!-- Reset Button -->
-            <button class="enhance-reset-btn" id="enhanceResetBtn">🔄 Reset ke Original</button>
-          </div>
-
           <!-- Custom Player Control Bar -->
           <div class="custom-controls-bar" id="customControlsBar">
+            <!-- Live Seek Preview Tooltip (Netflix Style) -->
+            <div class="seek-preview-tooltip" id="seekPreviewTooltip">
+              <div class="seek-preview-thumb">
+                <video id="seekPreviewVideo" muted playsinline preload="none"></video>
+              </div>
+              <div class="seek-preview-time" id="seekPreviewTime">00:00</div>
+            </div>
+
             <!-- Progress Bar -->
             <div class="progress-container" id="progressBar">
               <div class="progress-buffer" id="progressBuffer"></div>
@@ -206,22 +187,6 @@
               <div class="controls-left">
                 <!-- Play / Pause -->
                 <button class="ctrl-btn" id="btnPlayPause" title="Play / Pause (Spasi)">▶</button>
-                <!-- Skip Back 10s -->
-                <button class="ctrl-btn ctrl-btn-skip" id="btnSkipBack" title="Mundur 10 Detik (← atau J)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M1 4v6h6"></path>
-                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                  </svg>
-                  <span class="skip-badge">10</span>
-                </button>
-                <!-- Skip Forward 10s -->
-                <button class="ctrl-btn ctrl-btn-skip" id="btnSkipForward" title="Maju 10 Detik (→ atau L)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M23 4v6h-6"></path>
-                    <path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"></path>
-                  </svg>
-                  <span class="skip-badge">10</span>
-                </button>
                 <!-- Prev Episode -->
                 <button class="ctrl-btn" id="btnPrevEp" title="Episode Sebelumnya" disabled>⏮</button>
                 <!-- Next Episode -->
@@ -263,9 +228,6 @@
                   <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.05" value="1">
                 </div>
 
-                <!-- Video Enhancement Toggle -->
-                <button class="ctrl-btn" id="btnEnhance" title="Video Enhancement (E)">✨</button>
-
                 <!-- Fullscreen -->
                 <button class="ctrl-btn" id="btnFullscreen" title="Layar Penuh (F)">⛶</button>
               </div>
@@ -294,8 +256,9 @@
     <span id="toastMsg">Pemberitahuan</span>
   </div>
 
-  <!-- Application Scripts -->
-  <script src="js/player.js?v=1.1.0"></script>
-  <script src="js/app.js"></script>
+  <!-- Application Scripts (Non-blocking at bottom) -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="js/player.js?v=1.2.1"></script>
+  <script src="js/app.js?v=1.2.1"></script>
 </body>
 </html>
