@@ -153,6 +153,7 @@ export async function createMovie(movieData) {
     genre: movieData.genre || 'Favorit',
     stream_url: movieData.stream_url || '',
     episodes: Array.isArray(movieData.episodes) ? movieData.episodes : [],
+    is_featured: Boolean(movieData.is_featured),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
@@ -179,6 +180,7 @@ export async function updateMovie(id, updateData) {
     updated_at: new Date().toISOString()
   };
   if (payload.year !== undefined) payload.year = Number(payload.year);
+  if (payload.is_featured !== undefined) payload.is_featured = Boolean(payload.is_featured);
 
   const { data, error } = await supabase
     .from('movies')
