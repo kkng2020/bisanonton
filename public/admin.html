@@ -3,15 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/">
   <title>Kelola Film - Admin Bisa Nonton</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎬</text></svg>">
   
   <!-- CSS Stylesheets -->
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="/css/style.css?v=2.1">
+  <link rel="stylesheet" href="/css/admin.css?v=2.1">
 
   <!-- Theme Manager (Load in head to prevent theme flashing) -->
-  <script src="js/theme.js"></script>
+  <script src="/js/theme.js?v=2.1"></script>
 </head>
 <body>
 
@@ -23,12 +24,6 @@
     </div>
 
     <div class="nav-actions">
-      <!-- Theme Switcher -->
-      <button class="theme-toggle-btn" title="Ganti Mode Tampilan">
-        <span class="theme-icon">🌙</span>
-        <span class="theme-text">Mode Gelap</span>
-      </button>
-
       <a href="/" class="btn btn-outline">
         👁️ Lihat Website
       </a>
@@ -118,10 +113,11 @@
           <table class="admin-table">
             <thead>
               <tr>
-                <th style="width: 35%;">Film / Serial</th>
-                <th style="width: 15%;">Tipe</th>
-                <th style="width: 30%;">Sumber Stream</th>
-                <th style="width: 20%; text-align: right;">Aksi</th>
+                <th style="width: 32%;">Film / Serial</th>
+                <th style="width: 14%;">Tipe</th>
+                <th style="width: 18%;">Cover Hero</th>
+                <th style="width: 20%;">Sumber Stream</th>
+                <th style="width: 16%; text-align: right;">Aksi</th>
               </tr>
             </thead>
             <tbody id="adminTableBody">
@@ -157,6 +153,17 @@
               <input type="radio" id="typeSeries" name="contentType" value="series">
               <label for="typeSeries">📺 Serial TV (Multi-Episode)</label>
             </div>
+          </div>
+
+          <!-- Checkbox Bintang Cover Utama (Hero Banner Slide) -->
+          <div class="form-group" style="background: rgba(255, 215, 0, 0.08); border: 1px solid rgba(255, 215, 0, 0.25); border-radius: var(--radius-sm); padding: 0.75rem 1rem;">
+            <label class="form-label" style="margin: 0; display: flex; align-items: center; gap: 0.65rem; cursor: pointer; color: var(--text-main); font-weight: 600;">
+              <input type="checkbox" id="formIsFeatured" style="width: 18px; height: 18px; accent-color: #ffd700; cursor: pointer;">
+              <span>⭐ Jadikan Cover Utama (Hero Slider)</span>
+            </label>
+            <small style="color: var(--text-dim); font-size: 0.75rem; margin-top: 0.35rem; display: block; margin-left: 1.8rem;">
+              Film atau serial ini akan tampil bergantian di banner cover depan website.
+            </small>
           </div>
 
           <!-- Judul Film -->
@@ -243,6 +250,6 @@
   </div>
 
   <!-- Admin JS -->
-  <script src="js/admin.js"></script>
+  <script src="/js/admin.js?v=2.1"></script>
 </body>
 </html>
