@@ -11,7 +11,8 @@
     "stream_url": "https://stream.playcdn.de/playlist/743dbbdc501809c146833430c66de467/3/480.m3u8?x=1",
     "episodes": [],
     "created_at": "2026-09-15T06:07:38.213+00:00",
-    "updated_at": "2026-09-15T06:07:38.214+00:00"
+    "updated_at": "2026-09-16T03:58:28.587+00:00",
+    "is_featured": true
   },
   {
     "id": "mov_1789452238453_ry1kw",
@@ -25,7 +26,8 @@
     "stream_url": "https://stream.playcdn.de/playlist/376543dc6374ddd87ece2c873c4e17ab/2/480.m3u8?x=1",
     "episodes": [],
     "created_at": "2026-09-15T06:03:58.453+00:00",
-    "updated_at": "2026-09-15T06:04:06.412+00:00"
+    "updated_at": "2026-09-16T03:58:48.224+00:00",
+    "is_featured": true
   },
   {
     "id": "mov_1789451336107_73io3",
@@ -39,7 +41,8 @@
     "stream_url": "https://stream.playcdn.de/playlist/f076a7a7d091ec197c1bfb71d211183d/1/480.m3u8?x=1",
     "episodes": [],
     "created_at": "2026-09-15T05:48:56.107+00:00",
-    "updated_at": "2026-09-15T05:52:16.181+00:00"
+    "updated_at": "2026-09-16T03:59:00.77+00:00",
+    "is_featured": true
   },
   {
     "id": "mov_1789151489454_kzynr",
@@ -53,7 +56,8 @@
     "stream_url": "https://stream.playcdn.de/playlist/939521bfedc9b8c88957e5810ed25da6/4/480.m3u8?x=1",
     "episodes": [],
     "created_at": "2026-09-11T18:31:29.454+00:00",
-    "updated_at": "2026-09-11T18:31:29.454+00:00"
+    "updated_at": "2026-09-11T18:31:29.454+00:00",
+    "is_featured": false
   },
   {
     "id": "mov_1789151030740_h86zz",
@@ -67,7 +71,8 @@
     "stream_url": "https://stream.playcdn.de/playlist/153ea0ec867efae5398835a787407b6d/4/480.m3u8?x=1",
     "episodes": [],
     "created_at": "2026-09-11T18:23:50.74+00:00",
-    "updated_at": "2026-09-15T05:50:23.285+00:00"
+    "updated_at": "2026-09-15T05:50:23.285+00:00",
+    "is_featured": false
   },
   {
     "id": "mov_1789150948037_d6y8a",
@@ -81,7 +86,8 @@
     "stream_url": "https://stream.playcdn.de/playlist/3c263196bf30ea494572b60e30045587/4/480.m3u8?x=1",
     "episodes": [],
     "created_at": "2026-09-11T18:22:28.037+00:00",
-    "updated_at": "2026-09-15T05:51:25.475+00:00"
+    "updated_at": "2026-09-15T05:51:25.475+00:00",
+    "is_featured": false
   },
   {
     "id": "mov_1789139783079_1wr1a",
@@ -95,7 +101,8 @@
     "stream_url": "https://stream.playcdn.de/playlist/e30393245917ce0b10d6c6b4d0d2c68e/1/0.m3u8?x=1",
     "episodes": [],
     "created_at": "2026-09-11T15:16:23.079+00:00",
-    "updated_at": "2026-09-15T05:52:58.715+00:00"
+    "updated_at": "2026-09-15T05:52:58.715+00:00",
+    "is_featured": false
   },
   {
     "id": "mov_1789139332468_p70pd",
@@ -109,7 +116,8 @@
     "stream_url": "https://stream.playcdn.de/playlist/d1c03ae96f93f573e323669704e04abb/1/0.m3u8?x=1",
     "episodes": [],
     "created_at": "2026-09-11T15:08:52.468+00:00",
-    "updated_at": "2026-09-11T15:11:42.6+00:00"
+    "updated_at": "2026-09-11T15:11:42.6+00:00",
+    "is_featured": false
   },
   {
     "id": "mov_1789137923128_vr3cg",
@@ -123,7 +131,8 @@
     "stream_url": "https://stream.playcdn.de/playlist/4b3288344ca8a9d740f85bc5187a847a/1/0.m3u8?x=1",
     "episodes": [],
     "created_at": "2026-09-11T14:45:23.128+00:00",
-    "updated_at": "2026-09-15T05:53:45.292+00:00"
+    "updated_at": "2026-09-15T05:53:45.292+00:00",
+    "is_featured": false
   },
   {
     "id": "mov_1789134949248_lsoog",
@@ -210,6 +219,7 @@
       }
     ],
     "created_at": "2026-09-11T13:55:49.248+00:00",
-    "updated_at": "2026-09-15T05:58:07.738+00:00"
+    "updated_at": "2026-09-15T05:58:07.738+00:00",
+    "is_featured": false
   }
 ]
