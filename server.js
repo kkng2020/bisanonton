@@ -15,7 +15,14 @@ const PORT = process.env.PORT || 3000;
 // Middlewares
 app.use(cors());
 app.use(express.json());
+// Route halaman Admin Panel (didahulukan agar tidak terintersepsi index.html)
+app.get(['/admin', '/admin/'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// File statis
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/admin', express.static(path.join(__dirname, 'public'), { index: false }));
 
 // === STREAMING PROXY ENDPOINT (Mengatasi CORS pada link m3u8 eksternal) ===
 app.get('/api/proxy', async (req, res) => {
@@ -171,7 +178,7 @@ app.get('/api/movies/:id', async (req, res) => {
 // 3. Create Movie / Series (Protected with verifyAdminAuth)
 app.post('/api/movies', verifyAdminAuth, async (req, res) => {
   try {
-    const { title, cover_url, backdrop_url, description, type, year, genre, stream_url, episodes } = req.body;
+    const { title, cover_url, backdrop_url, description, type, year, genre, stream_url, episodes, is_featured } = req.body;
     if (!title || !title.trim()) {
       return res.status(400).json({ success: false, message: 'Judul film wajib diisi' });
     }
@@ -185,7 +192,8 @@ app.post('/api/movies', verifyAdminAuth, async (req, res) => {
       year: year || new Date().getFullYear(),
       genre: genre?.trim() || 'Favorit',
       stream_url: stream_url?.trim() || '',
-      episodes: Array.isArray(episodes) ? episodes : []
+      episodes: Array.isArray(episodes) ? episodes : [],
+      is_featured: Boolean(is_featured)
     });
 
     res.status(201).json({ success: true, data: created, message: 'Berhasil menambahkan film' });
@@ -207,6 +215,26 @@ app.put('/api/movies/:id', verifyAdminAuth, async (req, res) => {
   }
 });
 
+// 4b. Toggle Featured / Cover Hero Status (Protected with verifyAdminAuth)
+app.patch('/api/movies/:id/toggle-featured', verifyAdminAuth, async (req, res) => {
+  try {
+    const movie = await movieService.getMovieById(req.params.id);
+    if (!movie) {
+      return res.status(404).json({ success: false, message: 'Film tidak ditemukan' });
+    }
+    const newFeatured = !movie.is_featured;
+    const updated = await movieService.updateMovie(req.params.id, { is_featured: newFeatured });
+    res.json({ 
+      success: true, 
+      data: updated, 
+      is_featured: newFeatured, 
+      message: newFeatured ? `"${movie.title}" ditandai sebagai cover utama ⭐` : `"${movie.title}" dilepas dari cover utama` 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // 5. Delete Movie / Series (Protected with verifyAdminAuth)
 app.delete('/api/movies/:id', verifyAdminAuth, async (req, res) => {
   try {
@@ -220,10 +248,7 @@ app.delete('/api/movies/:id', verifyAdminAuth, async (req, res) => {
   }
 });
 
-// Fallback untuk route admin
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
+
 
 // Fallback untuk SPA / single page index
 app.get('*', (req, res) => {
