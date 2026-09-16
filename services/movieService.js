@@ -12,12 +12,89 @@ if (!supabaseUrl || !supabaseKey) {
 export const supabase = createClient(supabaseUrl, supabaseKey);
 console.log('⚡ Database: 100% Menggunakan Supabase Cloud');
 
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const CACHE_FILE = path.join(__dirname, '..', 'data', 'movies_cache.json');
+
 // ==========================================
-// OPERASI DATA (EKSKLUSIF SUPABASE)
+// OPERASI DATA (EKSKLUSIF SUPABASE DENGAN DISK & IN-MEMORY INSTANT CACHE)
 // ==========================================
 
-// 1. Dapatkan Semua Film / Serial
+let moviesCache = null;
+let cacheTimestamp = 0;
+const CACHE_TTL_MS = 60 * 1000;
+
+// Load disk cache on module startup for 0ms initial response
+try {
+  if (fs.existsSync(CACHE_FILE)) {
+    const raw = fs.readFileSync(CACHE_FILE, 'utf-8');
+    const parsed = JSON.parse(raw.replace(/^\uFEFF/, ''));
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      moviesCache = parsed;
+      cacheTimestamp = Date.now();
+      console.log(`⚡ Loaded ${moviesCache.length} movies from disk cache (0ms instant startup)`);
+    }
+  }
+} catch (err) {
+  console.warn('⚠️ Disk cache read warning:', err.message);
+}
+
+function saveCacheToDisk(data) {
+  try {
+    const dir = path.dirname(CACHE_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('⚠️ Disk cache write warning:', err.message);
+  }
+}
+
+export function invalidateMovieCache() {
+  moviesCache = null;
+  cacheTimestamp = 0;
+  // Segera refresh cache di background
+  refreshCacheFromSupabase().catch(console.warn);
+}
+
+async function refreshCacheFromSupabase() {
+  try {
+    const { data, error } = await supabase
+      .from('movies')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (!error && data) {
+      moviesCache = data;
+      cacheTimestamp = Date.now();
+      saveCacheToDisk(data);
+      return data;
+    }
+  } catch (e) {
+    console.warn('Background Supabase refresh error:', e.message);
+  }
+  return moviesCache;
+}
+
+// Background sync on startup to guarantee fresh data
+refreshCacheFromSupabase().catch(() => {});
+
+// 1. Dapatkan Semua Film / Serial (Dengan In-Memory & Disk Instant Cache)
 export async function getAllMovies(filters = {}) {
+  const isDefaultQuery = (!filters.type || filters.type === 'all') && !filters.search;
+  
+  // Return dari cache memori jika ada (super cepat 0ms)
+  if (isDefaultQuery && moviesCache && moviesCache.length > 0) {
+    // Jika cache sudah lebih dari 60 detik, refresh di background tanpa memblokir request
+    if (Date.now() - cacheTimestamp > CACHE_TTL_MS) {
+      refreshCacheFromSupabase().catch(console.warn);
+    }
+    return moviesCache;
+  }
+
   let query = supabase.from('movies').select('*').order('created_at', { ascending: false });
 
   if (filters.type && filters.type !== 'all') {
@@ -32,10 +109,19 @@ export async function getAllMovies(filters = {}) {
   const { data, error } = await query;
   if (error) {
     console.error('Supabase getAllMovies error:', error.message);
+    // Jika ada fallback cache, gunakan fallback
+    if (moviesCache) return moviesCache;
     throw error;
   }
 
-  return data || [];
+  const results = data || [];
+  if (isDefaultQuery) {
+    moviesCache = results;
+    cacheTimestamp = Date.now();
+    saveCacheToDisk(results);
+  }
+
+  return results;
 }
 
 // 2. Dapatkan Film Berdasarkan ID
@@ -82,6 +168,7 @@ export async function createMovie(movieData) {
     throw error;
   }
 
+  invalidateMovieCache();
   return data;
 }
 
@@ -105,6 +192,7 @@ export async function updateMovie(id, updateData) {
     throw error;
   }
 
+  invalidateMovieCache();
   return data;
 }
 
@@ -120,5 +208,6 @@ export async function deleteMovie(id) {
     throw error;
   }
 
+  invalidateMovieCache();
   return true;
 }
