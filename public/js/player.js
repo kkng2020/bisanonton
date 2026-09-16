@@ -161,6 +161,19 @@ class BisaPlayer {
       this.btnFullscreen.addEventListener('click', () => this.toggleFullscreen());
     }
 
+    // Fullscreen Event Listeners (Sync state & orientation)
+    const onFsChange = () => this.handleFullscreenChange();
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    document.addEventListener('mozfullscreenchange', onFsChange);
+    document.addEventListener('MSFullscreenChange', onFsChange);
+
+    // Safari iOS Native Video Fullscreen Events
+    if (this.video) {
+      this.video.addEventListener('webkitbeginfullscreen', () => this.handleFullscreenChange());
+      this.video.addEventListener('webkitendfullscreen', () => this.handleFullscreenChange());
+    }
+
     // Speed Menu Toggle
     if (this.btnSpeed && this.speedMenu) {
       this.btnSpeed.addEventListener('click', (e) => {
@@ -1101,24 +1114,143 @@ class BisaPlayer {
     }
   }
 
-  // Fullscreen
+  // ========================================================
+  // FULLSCREEN & ORIENTATION MANAGEMENT
+  // ========================================================
+  // Deteksi status fullscreen pada standar HTML5, prefix WebKit, dan Safari iOS
+  isFullscreen() {
+    return !!(
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement ||
+      (this.video && this.video.webkitDisplayingFullscreen)
+    );
+  }
+
+  // Toggle mode layar penuh
   toggleFullscreen() {
-    const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
-    if (!fsEl) {
-      const el = this.videoContainer;
-      if (el.requestFullscreen) {
-        el.requestFullscreen();
-      } else if (el.webkitRequestFullscreen) {
-        el.webkitRequestFullscreen();
-      } else if (el.webkitEnterFullscreen) {
-        this.video.webkitEnterFullscreen();
-      }
+    if (this.isFullscreen()) {
+      this.exitFullscreen();
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
+      this.enterFullscreen();
+    }
+  }
+
+  // Masuk ke mode fullscreen dengan dukungan Safari iOS dan auto-rotate landscape
+  async enterFullscreen() {
+    const el = this.videoContainer;
+    try {
+      if (el.requestFullscreen) {
+        await el.requestFullscreen({ navigationUI: 'hide' });
+        this.lockOrientationLandscape();
+      } else if (el.webkitRequestFullscreen) {
+        await el.webkitRequestFullscreen();
+        this.lockOrientationLandscape();
+      } else if (el.mozRequestFullScreen) {
+        await el.mozRequestFullScreen();
+        this.lockOrientationLandscape();
+      } else if (el.msRequestFullscreen) {
+        await el.msRequestFullscreen();
+        this.lockOrientationLandscape();
+      } else if (this.video && typeof this.video.webkitEnterFullscreen === 'function') {
+        // Khusus Safari di iPhone / iOS (yang membatasi Fullscreen API hanya pada elemen <video>)
+        if (this.video.readyState >= 1) {
+          this.video.webkitEnterFullscreen();
+        } else {
+          this.video.addEventListener('loadedmetadata', () => {
+            try { this.video.webkitEnterFullscreen(); } catch (e) {}
+          }, { once: true });
+        }
       }
+    } catch (err) {
+      console.warn('Container requestFullscreen gagal, mencoba fallback elemen video:', err);
+      // Fallback jika container fullscreen gagal pada browser berbasis WebKit
+      if (this.video && typeof this.video.webkitEnterFullscreen === 'function') {
+        try {
+          this.video.webkitEnterFullscreen();
+        } catch (e) {
+          console.warn('video.webkitEnterFullscreen error:', e);
+        }
+      }
+    }
+  }
+
+  // Keluar dari mode fullscreen
+  async exitFullscreen() {
+    this.unlockOrientation();
+    try {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        await document.webkitExitFullscreen();
+      } else if (document.mozCancelFullScreen) {
+        await document.mozCancelFullScreen();
+      } else if (document.msExitFullscreen) {
+        await document.msExitFullscreen();
+      } else if (this.video && this.video.webkitDisplayingFullscreen && typeof this.video.webkitExitFullscreen === 'function') {
+        this.video.webkitExitFullscreen();
+      }
+    } catch (err) {
+      console.warn('Exit fullscreen error:', err);
+    }
+  }
+
+  // Kunci orientasi ke landscape otomatis saat fullscreen
+  async lockOrientationLandscape() {
+    try {
+      // Screen Orientation API (Modern Chrome, Edge, Android Browsers)
+      if (screen.orientation && typeof screen.orientation.lock === 'function') {
+        await screen.orientation.lock('landscape');
+      } else if (screen.lockOrientation) {
+        screen.lockOrientation('landscape');
+      } else if (screen.webkitLockOrientation) {
+        screen.webkitLockOrientation('landscape');
+      } else if (screen.mozLockOrientation) {
+        screen.mozLockOrientation('landscape');
+      } else if (screen.msLockOrientation) {
+        screen.msLockOrientation('landscape');
+      }
+    } catch (err) {
+      // Desktop atau perangkat/browser yang tidak mengizinkan penguncian orientasi akan ditangkap di sini
+      console.log('Screen orientation lock landscape dilewati / tidak didukung di perangkat ini:', err);
+    }
+  }
+
+  // Buka kembali kunci orientasi (kembali ke portrait / auto-rotate normal)
+  unlockOrientation() {
+    try {
+      if (screen.orientation && typeof screen.orientation.unlock === 'function') {
+        screen.orientation.unlock();
+      } else if (screen.unlockOrientation) {
+        screen.unlockOrientation();
+      } else if (screen.webkitUnlockOrientation) {
+        screen.webkitUnlockOrientation();
+      } else if (screen.mozUnlockOrientation) {
+        screen.mozUnlockOrientation();
+      } else if (screen.msUnlockOrientation) {
+        screen.msUnlockOrientation();
+      }
+    } catch (e) {
+      // Abaikan error saat unlock
+    }
+  }
+
+  // Sinkronisasi status fullscreen, UI icon, dan orientasi layar
+  handleFullscreenChange() {
+    const isFs = this.isFullscreen();
+    if (isFs) {
+      this.videoContainer.classList.add('fullscreen-active');
+      if (this.btnFullscreen) {
+        this.btnFullscreen.title = 'Keluar Layar Penuh (F)';
+      }
+      this.lockOrientationLandscape();
+    } else {
+      this.videoContainer.classList.remove('fullscreen-active');
+      if (this.btnFullscreen) {
+        this.btnFullscreen.title = 'Layar Penuh (F)';
+      }
+      this.unlockOrientation();
     }
   }
 
@@ -1143,6 +1275,10 @@ class BisaPlayer {
   }
 
   close() {
+    if (this.isFullscreen()) {
+      this.exitFullscreen();
+    }
+    this.unlockOrientation();
     this.saveWatchProgress();
     this.cancelAutoplay();
     this.video.pause();
