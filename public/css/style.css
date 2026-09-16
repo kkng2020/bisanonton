@@ -7,12 +7,12 @@
    1. DEFAULT THEME: LIGHT MODE (Sesuai Permintaan)
    ======================================================== */
 :root {
-  --bg-main: #f8fafc;
-  --bg-surface: #ffffff;
-  --bg-card: #ffffff;
-  --bg-glass: rgba(255, 255, 255, 0.88);
-  --border-glass: rgba(0, 0, 0, 0.08);
-  --border-hover: rgba(255, 51, 102, 0.5);
+  --bg-main: #0a0c13;
+  --bg-surface: #121622;
+  --bg-card: rgba(22, 28, 43, 0.7);
+  --bg-glass: rgba(18, 22, 34, 0.88);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 51, 102, 0.4);
   
   --primary: #ff3366;
   --primary-glow: rgba(255, 51, 102, 0.25);
@@ -21,13 +21,13 @@
   --secondary-gradient: linear-gradient(135deg, #00b4d8 0%, #0077b6 100%);
   --accent-purple: #7928ca;
   
-  --text-main: #0f172a;
-  --text-muted: #475569;
+  --text-main: #ffffff;
+  --text-muted: #94a3b8;
   --text-dim: #64748b;
   
-  --input-bg: rgba(0, 0, 0, 0.04);
-  --input-border: rgba(0, 0, 0, 0.1);
-  --filter-bg: rgba(0, 0, 0, 0.04);
+  --input-bg: rgba(255, 255, 255, 0.06);
+  --input-border: rgba(255, 255, 255, 0.08);
+  --filter-bg: rgba(255, 255, 255, 0.05);
   
   --radius-sm: 8px;
   --radius-md: 14px;
@@ -35,14 +35,13 @@
   --radius-full: 9999px;
   
   --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  --shadow-card: 0 8px 25px -5px rgba(0, 0, 0, 0.06), 0 4px 10px -4px rgba(0, 0, 0, 0.04);
-  --shadow-glow: 0 0 20px var(--primary-glow);
+  --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 25px var(--primary-glow);
 }
 
-/* ========================================================
-   2. DARK MODE (Bioskop Gelap)
-   ======================================================== */
-[data-theme="dark"] {
+/* Kunci Permanen Dark Mode (Cinema Style) */
+[data-theme="dark"],
+[data-theme="light"] {
   --bg-main: #0a0c13;
   --bg-surface: #121622;
   --bg-card: rgba(22, 28, 43, 0.7);
@@ -430,37 +429,114 @@ button, input, select, textarea {
   gap: 1rem;
 }
 
-/* Floating Sound Toggle Button (Netflix Style) */
+/* Minimalist Floating Speaker Button (30% Opacity) */
 .hero-sound-btn {
   position: absolute;
   bottom: 3.5rem;
   right: 3.5rem;
-  z-index: 5;
+  z-index: 6;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.55rem 1.15rem;
-  background: rgba(10, 14, 25, 0.75);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: var(--radius-full);
-  color: #ffffff;
-  font-size: 0.85rem;
-  font-weight: 600;
+  justify-content: center;
   cursor: pointer;
-  transition: var(--transition);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  opacity: 0.3; /* 30% Opacity sesuai instruksi user */
+  transition: opacity 0.3s ease, transform 0.2s ease, background 0.2s ease;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  padding: 0;
 }
 
 .hero-sound-btn:hover {
-  background: rgba(255, 51, 102, 0.35);
-  border-color: var(--primary);
-  transform: translateY(-2px) scale(1.03);
+  opacity: 0.9;
+  transform: scale(1.08);
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .hero-sound-btn .sound-icon {
-  font-size: 1.05rem;
+  font-size: 1.2rem;
+  line-height: 1;
+  user-select: none;
+}
+
+/* Subtle Fade Carousel Navigation Arrows */
+.hero-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 6;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 1.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.35; /* Subtle fade, tidak mencolok */
+  transition: opacity 0.3s ease, transform 0.2s ease, background 0.2s ease;
+  user-select: none;
+  padding: 0;
+}
+
+.hero-arrow:hover {
+  opacity: 0.9;
+  transform: translateY(-50%) scale(1.08);
+  background: rgba(0, 0, 0, 0.65);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+}
+
+.hero-arrow-prev {
+  left: 2rem;
+}
+
+.hero-arrow-next {
+  right: 2rem;
+}
+
+/* Slide Dots Indicator */
+.hero-dots {
+  position: absolute;
+  bottom: 2.25rem;
+  left: 3.5rem;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hero-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  padding: 0;
+}
+
+.hero-dot:hover {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.hero-dot.active {
+  width: 24px;
+  background: var(--primary);
+  box-shadow: 0 0 10px var(--primary-glow);
 }
 
 /* Scroll Down Helper */
@@ -823,8 +899,21 @@ button, input, select, textarea {
   .hero-sound-btn {
     bottom: 4rem;
     right: 1.25rem;
-    padding: 0.45rem 0.9rem;
-    font-size: 0.75rem;
+    width: 38px;
+    height: 38px;
+    opacity: 0.4;
+  }
+  .hero-arrow {
+    width: 38px;
+    height: 38px;
+    font-size: 1.1rem;
+    opacity: 0.45;
+  }
+  .hero-arrow-prev { left: 0.75rem; }
+  .hero-arrow-next { right: 0.75rem; }
+  .hero-dots {
+    left: 1.5rem;
+    bottom: 1.75rem;
   }
   .hero-scroll-down {
     bottom: 1.25rem;
