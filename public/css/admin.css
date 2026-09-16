@@ -180,7 +180,44 @@
 }
 
 [data-theme="dark"] .action-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Star / Featured Toggle Button */
+.btn-star {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-glass);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.btn-star:hover {
+  border-color: rgba(255, 215, 0, 0.5);
+  background: rgba(255, 215, 0, 0.1);
+  color: #ffd700;
+  transform: translateY(-1px);
+}
+
+.btn-star.starred {
+  background: rgba(255, 215, 0, 0.15);
+  border-color: #ffd700;
+  color: #ffd700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+}
+
+.btn-star.starred:hover {
+  background: rgba(255, 215, 0, 0.25);
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.35);
 }
 
 .action-btn.btn-delete:hover {
