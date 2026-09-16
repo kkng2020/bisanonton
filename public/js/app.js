@@ -168,20 +168,32 @@ function sortMoviesByYear(list) {
   });
 }
 
-// Helper: Cari film unggulan untuk Hero (utamakan genre 'Favorit' atau item pertama)
-function getFeaturedMovie(movies) {
-  if (!Array.isArray(movies) || movies.length === 0) return null;
-  const fav = movies.find(m => (m.genre && m.genre.toLowerCase().includes('favorit')) || m.featured);
-  return fav || movies[0];
+// Helper: Cari film unggulan untuk Cover Hero (prioritaskan film bertanda is_featured dari Admin)
+function getFeaturedMovies(movies) {
+  if (!Array.isArray(movies) || movies.length === 0) return [];
+  // 1. Prioritaskan film yang di-bintang oleh admin di panel admin
+  const starred = movies.filter(m => m.is_featured);
+  if (starred.length > 0) return starred;
+
+  // 2. Fallback jika belum ada yang dibintang: cari yang bertanda 'Favorit' atau 5 film pertama
+  const favs = movies.filter(m => (m.genre && m.genre.toLowerCase().includes('favorit')) || m.featured);
+  if (favs.length > 0) return favs;
+
+  return movies.slice(0, 5);
 }
 
-// Variabel Kontrol Hero Video Preview & Audio
+// Variabel Kontrol Hero Carousel, Video Preview & Audio
+let heroFeaturedList = [];
+let currentHeroIndex = 0;
+let heroLoopTimeout = null;
 let heroHls = null;
 let heroVideoEl = null;
 let heroPosterEl = null;
 let heroSoundToggle = null;
 let heroSoundIcon = null;
-let heroSoundLabel = null;
+let heroArrowPrev = null;
+let heroArrowNext = null;
+let heroDots = null;
 let isHeroMuted = true;
 let heroVolumeFadeInterval = null;
 let heroClipStart = 1800; // menit 30 (1800 detik)
@@ -193,7 +205,9 @@ function initHeroElements() {
   heroPosterEl = document.getElementById('heroPosterLayer');
   heroSoundToggle = document.getElementById('heroSoundToggle');
   heroSoundIcon = document.getElementById('heroSoundIcon');
-  heroSoundLabel = document.getElementById('heroSoundLabel');
+  heroArrowPrev = document.getElementById('heroArrowPrev');
+  heroArrowNext = document.getElementById('heroArrowNext');
+  heroDots = document.getElementById('heroDots');
 
   if (heroSoundToggle) {
     heroSoundToggle.onclick = (e) => {
@@ -202,11 +216,61 @@ function initHeroElements() {
     };
   }
 
-  // Interaksi klik di banner hero (kecuali tombol kontrol) memicu audio jika user ingin dengar
+  // Kontrol Panah Navigasi Fade (Subtle)
+  if (heroArrowPrev) {
+    heroArrowPrev.onclick = (e) => {
+      e.stopPropagation();
+      prevHeroSlide();
+    };
+    heroArrowPrev.style.display = heroFeaturedList.length > 1 ? 'inline-flex' : 'none';
+  }
+
+  if (heroArrowNext) {
+    heroArrowNext.onclick = (e) => {
+      e.stopPropagation();
+      nextHeroSlide();
+    };
+    heroArrowNext.style.display = heroFeaturedList.length > 1 ? 'inline-flex' : 'none';
+  }
+
+  // Dukungan Swipe Gesture pada Layar Sentuh / Mobile
   const heroBanner = document.getElementById('heroBanner');
-  if (heroBanner) {
+  if (heroBanner && !heroBanner._hasTouchListener) {
+    heroBanner._hasTouchListener = true;
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    heroBanner.addEventListener('touchstart', (e) => {
+      if (e.touches && e.touches.length > 0) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    heroBanner.addEventListener('touchend', (e) => {
+      if (e.changedTouches && e.changedTouches.length > 0) {
+        const diffX = e.changedTouches[0].clientX - touchStartX;
+        const diffY = e.changedTouches[0].clientY - touchStartY;
+        // Geser ke samping jika horizontal lebih dominan (> 45px)
+        if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.4) {
+          if (diffX < 0) {
+            nextHeroSlide();
+          } else {
+            prevHeroSlide();
+          }
+        }
+      }
+    }, { passive: true });
+
+    // Interaksi klik di banner hero (kecuali tombol kontrol & panah) memicu audio jika user ingin dengar
     heroBanner.onclick = (e) => {
-      if (e.target.closest('#heroPlayBtn') || e.target.closest('#heroSoundToggle') || e.target.closest('#heroScrollDown')) {
+      if (
+        e.target.closest('#heroPlayBtn') || 
+        e.target.closest('#heroSoundToggle') || 
+        e.target.closest('#heroScrollDown') ||
+        e.target.closest('.hero-arrow') ||
+        e.target.closest('.hero-dots')
+      ) {
         return;
       }
       // Jika sedang menampilkan cover gambar (video tidak aktif), klik memutar kembali cuplikan
@@ -222,20 +286,77 @@ function initHeroElements() {
   }
 }
 
+// Navigasi Hero Carousel
+function prevHeroSlide() {
+  if (heroFeaturedList.length <= 1) return;
+  clearTimeout(heroLoopTimeout);
+  currentHeroIndex = (currentHeroIndex - 1 + heroFeaturedList.length) % heroFeaturedList.length;
+  renderHeroSlide(currentHeroIndex);
+}
+
+function nextHeroSlide() {
+  if (heroFeaturedList.length <= 1) return;
+  clearTimeout(heroLoopTimeout);
+  currentHeroIndex = (currentHeroIndex + 1) % heroFeaturedList.length;
+  renderHeroSlide(currentHeroIndex);
+}
+
+function goToHeroSlide(index) {
+  if (index === currentHeroIndex || index < 0 || index >= heroFeaturedList.length) return;
+  clearTimeout(heroLoopTimeout);
+  currentHeroIndex = index;
+  renderHeroSlide(currentHeroIndex);
+}
+
+function renderHeroDots() {
+  const dotsContainer = document.getElementById('heroDots');
+  if (!dotsContainer) return;
+  dotsContainer.innerHTML = '';
+
+  if (heroFeaturedList.length <= 1) {
+    dotsContainer.style.display = 'none';
+    return;
+  }
+  dotsContainer.style.display = 'flex';
+
+  heroFeaturedList.forEach((item, idx) => {
+    const dot = document.createElement('button');
+    dot.className = `hero-dot ${idx === currentHeroIndex ? 'active' : ''}`;
+    dot.setAttribute('title', item.title || `Cover ${idx + 1}`);
+    dot.setAttribute('aria-label', `Pindah ke cover ${idx + 1}`);
+    dot.onclick = (e) => {
+      e.stopPropagation();
+      goToHeroSlide(idx);
+    };
+    dotsContainer.appendChild(dot);
+  });
+}
+
+function updateHeroDots() {
+  const dotsContainer = document.getElementById('heroDots');
+  if (!dotsContainer) return;
+  const dots = dotsContainer.querySelectorAll('.hero-dot');
+  dots.forEach((dot, idx) => {
+    if (idx === currentHeroIndex) {
+      dot.classList.add('active');
+    } else {
+      dot.classList.remove('active');
+    }
+  });
+}
+
 function updateHeroSoundUI(isUnmuted) {
-  if (!heroSoundIcon || !heroSoundLabel) return;
+  if (!heroSoundIcon) return;
   if (isUnmuted) {
     heroSoundIcon.textContent = '🔊';
-    heroSoundLabel.textContent = 'Suara (50%)';
     if (heroSoundToggle) heroSoundToggle.title = 'Matikan Suara Cuplikan';
   } else {
     heroSoundIcon.textContent = '🔇';
-    heroSoundLabel.textContent = 'Suara (0%)';
-    if (heroSoundToggle) heroSoundToggle.title = 'Nyalakan Suara Cuplikan (Volume 50%)';
+    if (heroSoundToggle) heroSoundToggle.title = 'Nyalakan Suara Cuplikan (Volume 70%)';
   }
 }
 
-// Fade in suara video hingga volume default 50% (0.5)
+// Fade in suara video hingga volume default 70% (0.7)
 function fadeHeroAudioIn() {
   if (!heroVideoEl) return;
   clearInterval(heroVolumeFadeInterval);
@@ -244,7 +365,7 @@ function fadeHeroAudioIn() {
   updateHeroSoundUI(true);
 
   let currentVol = heroVideoEl.volume || 0;
-  const targetVol = 0.5; // Default 50% sesuai permintaan
+  const targetVol = 0.7; // Default 70% khusus untuk preview
   const step = 0.1;
 
   heroVolumeFadeInterval = setInterval(() => {
@@ -349,14 +470,18 @@ function loadHeroVideoPreview(item) {
       heroVideoEl.pause();
     }, 1500);
 
-    // 4. Tampilkan cover gambar beberapa saat (7 detik), kemudian putar cuplikan kembali
+    // 4. Tampilkan cover gambar beberapa saat (7 detik), kemudian putar cover berikutnya atau putar ulang
     clearTimeout(heroLoopTimeout);
     heroLoopTimeout = setTimeout(() => {
       const playerModal = document.getElementById('playerModal');
       const isPlayerOpen = playerModal && playerModal.classList.contains('active');
       const scrollY = window.scrollY || window.pageYOffset;
       if (!isPlayerOpen && scrollY < 300) {
-        restartHeroClip();
+        if (heroFeaturedList.length > 1) {
+          nextHeroSlide();
+        } else {
+          restartHeroClip();
+        }
       } else {
         isTransitioningToPoster = false;
       }
@@ -467,7 +592,7 @@ async function fetchMovies() {
       const parsed = JSON.parse(cached);
       if (Array.isArray(parsed) && parsed.length > 0) {
         allMovies = sortMoviesByYear(parsed);
-        renderHero(getFeaturedMovie(allMovies));
+        renderHero(allMovies);
         renderCatalog();
         hasRendered = true;
       }
@@ -477,7 +602,7 @@ async function fetchMovies() {
   // 2. Jika belum ada cache sama sekali di localStorage, render dari default fallback instan 0 detik
   if (!hasRendered && Array.isArray(DEFAULT_CATALOG_FALLBACK) && DEFAULT_CATALOG_FALLBACK.length > 0) {
     allMovies = sortMoviesByYear(DEFAULT_CATALOG_FALLBACK);
-    renderHero(getFeaturedMovie(allMovies));
+    renderHero(allMovies);
     renderCatalog();
     hasRendered = true;
   }
@@ -493,7 +618,7 @@ async function fetchMovies() {
       const newJson = JSON.stringify(sortedNew);
       if (currentJson !== newJson || !hasRendered) {
         allMovies = sortedNew;
-        renderHero(getFeaturedMovie(allMovies));
+        renderHero(allMovies);
         renderCatalog();
       }
       // Simpan ke cache browser untuk kunjungan berikutnya
@@ -511,49 +636,86 @@ async function fetchMovies() {
   }
 }
 
-// Render Hero Highlight Banner (100vh Fullscreen Edge-to-Edge)
-function renderHero(featuredMovie) {
+// Render Hero Highlight Banner & Multi-Cover Carousel
+function renderHero(movies) {
   const heroBanner = document.getElementById('heroBanner');
-  if (!featuredMovie) {
+  if (!heroBanner) return;
+
+  let list = [];
+  if (Array.isArray(movies)) {
+    list = movies;
+  } else if (movies && typeof movies === 'object') {
+    list = [movies];
+  } else if (Array.isArray(allMovies)) {
+    list = allMovies;
+  }
+
+  heroFeaturedList = getFeaturedMovies(list);
+  if (heroFeaturedList.length === 0) {
     heroBanner.style.display = 'none';
     return;
   }
 
-  currentFeaturedMovie = featuredMovie;
+  if (currentHeroIndex >= heroFeaturedList.length) {
+    currentHeroIndex = 0;
+  }
+
+  initHeroElements();
+  renderHeroDots();
+  renderHeroSlide(currentHeroIndex);
+  heroBanner.style.display = 'flex';
+}
+
+function renderHeroSlide(index) {
+  if (!heroFeaturedList || heroFeaturedList.length === 0) return;
+  if (index < 0 || index >= heroFeaturedList.length) {
+    index = 0;
+  }
+  currentHeroIndex = index;
+  const movie = heroFeaturedList[currentHeroIndex];
+  currentFeaturedMovie = movie;
+
   initHeroElements();
 
-  const bgImage = featuredMovie.backdrop_url || featuredMovie.cover_url;
+  const bgImage = movie.backdrop_url || movie.cover_url;
   if (bgImage && heroPosterEl) {
     heroPosterEl.style.backgroundImage = `url('${bgImage}')`;
     heroPosterEl.classList.remove('fade-out');
   }
 
-  document.getElementById('heroBadge').textContent = featuredMovie.type === 'series' ? '🔥 Serial Pilihan' : '⭐ Film Favorit';
-  document.getElementById('heroTitle').textContent = featuredMovie.title;
-  document.getElementById('heroYear').textContent = featuredMovie.year || '2026';
-  document.getElementById('heroGenre').textContent = featuredMovie.genre || 'Favorit';
-  document.getElementById('heroDesc').textContent = featuredMovie.description || 'Nonton film pilihan favorit berkualitas tinggi.';
+  const badgeEl = document.getElementById('heroBadge');
+  if (badgeEl) {
+    badgeEl.textContent = movie.type === 'series' ? '🔥 Serial Pilihan' : '⭐ Film Favorit';
+  }
+  const titleEl = document.getElementById('heroTitle');
+  if (titleEl) titleEl.textContent = movie.title;
+  const yearEl = document.getElementById('heroYear');
+  if (yearEl) yearEl.textContent = movie.year || '2026';
+  const genreEl = document.getElementById('heroGenre');
+  if (genreEl) genreEl.textContent = movie.genre || 'Favorit';
+  const descEl = document.getElementById('heroDesc');
+  if (descEl) descEl.textContent = movie.description || 'Nonton film pilihan favorit berkualitas tinggi.';
 
   const playBtn = document.getElementById('heroPlayBtn');
-  // Hapus listener lama jika ada
-  const newPlayBtn = playBtn.cloneNode(true);
-  playBtn.parentNode.replaceChild(newPlayBtn, playBtn);
+  if (playBtn) {
+    const newPlayBtn = playBtn.cloneNode(true);
+    playBtn.parentNode.replaceChild(newPlayBtn, playBtn);
+    newPlayBtn.addEventListener('click', () => {
+      // Matikan preview saat modal player utama dibuka
+      if (heroVideoEl) {
+        heroVideoEl.pause();
+        fadeHeroAudioOut(true);
+      }
+      if (window.playerInstance) {
+        window.playerInstance.open(movie);
+      }
+    });
+  }
 
-  newPlayBtn.addEventListener('click', () => {
-    // Matikan preview saat modal player utama dibuka
-    if (heroVideoEl) {
-      heroVideoEl.pause();
-      fadeHeroAudioOut(true);
-    }
-    if (window.playerInstance) {
-      window.playerInstance.open(featuredMovie);
-    }
-  });
+  updateHeroDots();
 
-  heroBanner.style.display = 'flex';
-
-  // Muat preview video background cuplikan menit 30-32
-  loadHeroVideoPreview(featuredMovie);
+  // Muat preview video background cuplikan menit 30-32 untuk slide aktif
+  loadHeroVideoPreview(movie);
 }
 
 // Render Katalog Kartu Film
