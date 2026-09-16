@@ -1,6 +1,9 @@
 /**
  * BISA NONTON - Video Player Engine
- * Mendukung HLS (.m3u8), selector kualitas, navigasi episode serial, dan auto-play next episode.
+ * Mendukung HLS (.m3u8), selector kualitas, navigasi episode serial,
+ * auto-play next episode, live scrub preview ala Netflix,
+ * overlay kontrol tengah (Mundur 10s, Play/Pause, Maju 10s),
+ * dan fitur Remember Watch Progress menggunakan localStorage.
  */
 
 class BisaPlayer {
@@ -13,14 +16,22 @@ class BisaPlayer {
     this.playerTitle = document.getElementById('playerTitle');
     this.playerSubtitle = document.getElementById('playerSubtitle');
     this.loadingSpinner = document.getElementById('videoLoadingSpinner');
-    this.centerPlayOverlay = document.getElementById('centerPlayOverlay');
+
+    // Center Controls Overlay
+    this.centerControls = document.getElementById('centerControlsOverlay');
+    this.centerBtnPlayPause = document.getElementById('centerBtnPlayPause');
+    this.centerBtnRewind = document.getElementById('centerBtnRewind');
+    this.centerBtnForward = document.getElementById('centerBtnForward');
     this.centerPlayIcon = document.getElementById('centerPlayIcon');
 
-    // Controls
+    // Live Seek Preview Tooltip (Netflix-Style)
+    this.seekPreviewTooltip = document.getElementById('seekPreviewTooltip');
+    this.seekPreviewVideo = document.getElementById('seekPreviewVideo');
+    this.seekPreviewTime = document.getElementById('seekPreviewTime');
+
+    // Bottom Controls Bar
     this.controlsBar = document.getElementById('customControlsBar');
     this.btnPlayPause = document.getElementById('btnPlayPause');
-    this.btnSkipBack = document.getElementById('btnSkipBack');
-    this.btnSkipForward = document.getElementById('btnSkipForward');
     this.btnPrevEp = document.getElementById('btnPrevEp');
     this.btnNextEp = document.getElementById('btnNextEp');
     this.timeDisplay = document.getElementById('timeDisplay');
@@ -45,13 +56,6 @@ class BisaPlayer {
     this.volumeSlider = document.getElementById('volumeSlider');
     this.btnFullscreen = document.getElementById('btnFullscreen');
 
-    // Video Enhancement
-    this.btnEnhance = document.getElementById('btnEnhance');
-    this.enhancePanel = document.getElementById('enhancePanel');
-    this.enhancePanelClose = document.getElementById('enhancePanelClose');
-    this.enhanceResetBtn = document.getElementById('enhanceResetBtn');
-    this.sharpenKernel = document.getElementById('sharpenKernel');
-
     // Sidebar & Autoplay
     this.sidebar = document.getElementById('episodeSidebar');
     this.episodeList = document.getElementById('episodeList');
@@ -64,57 +68,98 @@ class BisaPlayer {
 
     // State Variables
     this.hls = null;
+    this.previewHls = null;
     this.currentItem = null; // Movie or Series object
     this.currentEpisodeIndex = 0;
     this.autoplayTimer = null;
-    this.autoplayInterval = null;
     this.controlsTimeout = null;
     this.isDraggingSeek = false;
-
-    // Enhancement State
-    this.enhancePresets = {
-      original:  { sharpness: 0,  brightness: 100, contrast: 100, saturation: 100, warmth: 0  },
-      cinema:    { sharpness: 30, brightness: 95,  contrast: 115, saturation: 90,  warmth: 10 },
-      vivid:     { sharpness: 20, brightness: 105, contrast: 110, saturation: 140, warmth: 0  },
-      sharp:     { sharpness: 80, brightness: 100, contrast: 105, saturation: 105, warmth: 0  }
-    };
-    this.enhanceValues = { ...this.enhancePresets.original };
-    this.activePreset = 'original';
+    this.lastSaveTime = 0;
 
     this.initEvents();
-    this.initEnhancement();
   }
 
   initEvents() {
     // Modal Close
     this.closeBtn.addEventListener('click', () => this.close());
 
-    // Video Play/Pause toggle
-    this.btnPlayPause.addEventListener('click', () => this.togglePlay());
-    this.video.addEventListener('click', () => this.togglePlay());
-
-    // Lompat mundur / maju 10 detik
-    if (this.btnSkipBack) {
-      this.btnSkipBack.addEventListener('click', () => this.skipTime(-10));
-    }
-    if (this.btnSkipForward) {
-      this.btnSkipForward.addEventListener('click', () => this.skipTime(10));
+    // Play / Pause Toggle Buttons
+    if (this.btnPlayPause) {
+      this.btnPlayPause.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.togglePlay();
+      });
     }
 
-    // Episode Prev / Next button
-    this.btnPrevEp.addEventListener('click', () => this.playPreviousEpisode());
-    this.btnNextEp.addEventListener('click', () => this.playNextEpisode());
+    // Center Controls Overlay Action Buttons
+    if (this.centerBtnPlayPause) {
+      this.centerBtnPlayPause.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.togglePlay();
+      });
+    }
 
-    // Volume & Mute
-    this.btnMute.addEventListener('click', () => this.toggleMute());
-    this.volumeSlider.addEventListener('input', (e) => {
-      this.video.volume = parseFloat(e.target.value);
-      this.video.muted = this.video.volume === 0;
-      this.updateVolumeIcon();
+    if (this.centerBtnRewind) {
+      this.centerBtnRewind.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.skipTime(-10);
+        this.pulseCenterBtn(this.centerBtnRewind);
+      });
+    }
+
+    if (this.centerBtnForward) {
+      this.centerBtnForward.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.skipTime(10);
+        this.pulseCenterBtn(this.centerBtnForward);
+      });
+    }
+
+    // Menekan area video: jika paused langsung play, jika playing munculkan kontrol tanpa pause
+    this.videoContainer.addEventListener('click', (e) => {
+      // Abaikan jika klik terjadi pada tombol kontrol langsung
+      if (
+        e.target.closest('.center-btn') || 
+        e.target.closest('.custom-controls-bar') || 
+        e.target.closest('.autoplay-countdown-overlay')
+      ) {
+        return;
+      }
+
+      // Jika video sedang dijeda / belum berputar -> Klik di mana saja pada layar video LANGSUNG PUTAR!
+      if (this.video.paused || this.video.ended) {
+        this.togglePlay();
+        return;
+      }
+
+      // Jika video sedang berputar -> Klik video memunculkan/menyembunyikan overlay tanpa menghentikan video
+      this.toggleControlsVisibility();
     });
 
+    // Episode Prev / Next button
+    if (this.btnPrevEp) {
+      this.btnPrevEp.addEventListener('click', () => this.playPreviousEpisode());
+    }
+    if (this.btnNextEp) {
+      this.btnNextEp.addEventListener('click', () => this.playNextEpisode());
+    }
+
+    // Volume & Mute
+    if (this.btnMute) {
+      this.btnMute.addEventListener('click', () => this.toggleMute());
+    }
+    if (this.volumeSlider) {
+      this.volumeSlider.addEventListener('input', (e) => {
+        this.video.volume = parseFloat(e.target.value);
+        this.video.muted = this.video.volume === 0;
+        this.updateVolumeIcon();
+      });
+    }
+
     // Fullscreen
-    this.btnFullscreen.addEventListener('click', () => this.toggleFullscreen());
+    if (this.btnFullscreen) {
+      this.btnFullscreen.addEventListener('click', () => this.toggleFullscreen());
+    }
 
     // Speed Menu Toggle
     if (this.btnSpeed && this.speedMenu) {
@@ -135,11 +180,13 @@ class BisaPlayer {
     }
 
     // Quality Menu Toggle
-    this.btnQuality.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (this.speedMenu) this.speedMenu.classList.remove('show');
-      this.qualityMenu.classList.toggle('show');
-    });
+    if (this.btnQuality && this.qualityMenu) {
+      this.btnQuality.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.speedMenu) this.speedMenu.classList.remove('show');
+        this.qualityMenu.classList.toggle('show');
+      });
+    }
 
     document.addEventListener('click', (e) => {
       if (this.qualityMenu && !this.qualityMenu.contains(e.target) && e.target !== this.btnQuality) {
@@ -148,48 +195,97 @@ class BisaPlayer {
       if (this.speedMenu && !this.speedMenu.contains(e.target) && e.target !== this.btnSpeed) {
         this.speedMenu.classList.remove('show');
       }
-      // Close enhance panel when clicking outside
-      if (this.enhancePanel && !this.enhancePanel.contains(e.target) && e.target !== this.btnEnhance) {
-        this.enhancePanel.classList.add('hidden');
+    });
+
+    // ========================================================
+    // PROGRESS BAR & SCRUBBER (Mouse & Touch Dragging)
+    // ========================================================
+    // Mouse Seeking
+    this.progressBar.addEventListener('mousedown', (e) => this.startSeek(e));
+    window.addEventListener('mousemove', (e) => {
+      if (this.isDraggingSeek) {
+        this.doSeek(e.clientX);
+      }
+    });
+    window.addEventListener('mouseup', () => this.endSeek());
+
+    // Touch Seeking (Layar Sentuh iPhone / iPad / Android)
+    this.progressBar.addEventListener('touchstart', (e) => {
+      if (e.touches && e.touches.length > 0) {
+        this.startSeekTouch(e);
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (this.isDraggingSeek && e.touches && e.touches.length > 0) {
+        e.preventDefault(); // Mencegah scrolling halaman saat menggeser slider video
+        this.doSeek(e.touches[0].clientX);
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchend', () => this.endSeek());
+
+    // Desktop Hover Preview
+    this.progressBar.addEventListener('mousemove', (e) => {
+      if (!this.isDraggingSeek) {
+        this.updateSeekPreview(e.clientX);
       }
     });
 
-    // Progress Bar Seeking
-    this.progressBar.addEventListener('mousedown', (e) => this.startSeek(e));
-    window.addEventListener('mousemove', (e) => this.doSeek(e));
-    window.addEventListener('mouseup', () => this.endSeek());
+    this.progressBar.addEventListener('mouseleave', () => {
+      if (!this.isDraggingSeek && this.seekPreviewTooltip) {
+        this.seekPreviewTooltip.classList.remove('active');
+      }
+    });
 
-    // Video Event Listeners
+    // ========================================================
+    // VIDEO EVENT LISTENERS
+    // ========================================================
     this.video.addEventListener('timeupdate', () => this.onTimeUpdate());
     this.video.addEventListener('progress', () => this.updateBuffer());
     this.video.addEventListener('waiting', () => this.showLoading(true));
+    this.video.addEventListener('canplay', () => this.showLoading(false));
+    this.video.addEventListener('loadeddata', () => this.showLoading(false));
     this.video.addEventListener('playing', () => {
       this.showLoading(false);
-      this.btnPlayPause.textContent = '⏸';
+      this.updatePlayPauseIcons(true);
+      this.videoContainer.classList.remove('is-paused');
       if (this.currentSpeed && this.currentSpeed !== 1) {
         this.video.playbackRate = this.currentSpeed;
       }
+      this.resetControlsTimeout();
     });
     this.video.addEventListener('pause', () => {
-      this.btnPlayPause.textContent = '▶';
+      this.showLoading(false);
+      this.updatePlayPauseIcons(false);
+      this.videoContainer.classList.add('is-paused');
+      this.showControls();
+      this.saveWatchProgress();
     });
-    this.video.addEventListener('ended', () => this.onVideoEnded());
+    this.video.addEventListener('ended', () => {
+      this.videoContainer.classList.add('is-paused');
+      this.onVideoEnded();
+    });
 
     // Autoplay Next Episode overlay buttons
-    this.autoplayPlayNowBtn.addEventListener('click', () => {
-      this.cancelAutoplay();
-      this.playNextEpisode();
-    });
+    if (this.autoplayPlayNowBtn) {
+      this.autoplayPlayNowBtn.addEventListener('click', () => {
+        this.cancelAutoplay();
+        this.playNextEpisode();
+      });
+    }
 
-    this.autoplayCancelBtn.addEventListener('click', () => {
-      this.cancelAutoplay();
-    });
+    if (this.autoplayCancelBtn) {
+      this.autoplayCancelBtn.addEventListener('click', () => {
+        this.cancelAutoplay();
+      });
+    }
 
-    // Idle controls hiding
+    // Idle controls hiding saat kursor bergerak di atas video
     this.videoContainer.addEventListener('mousemove', () => this.resetControlsTimeout());
     this.videoContainer.addEventListener('mouseleave', () => {
       if (!this.video.paused) {
-        this.videoContainer.classList.add('user-idle');
+        this.hideControls();
       }
     });
 
@@ -205,40 +301,111 @@ class BisaPlayer {
       } else if (e.key === 'ArrowRight' || e.key === 'l' || e.key === 'L') {
         e.preventDefault();
         this.skipTime(10);
+        this.pulseCenterBtn(this.centerBtnForward);
       } else if (e.key === 'ArrowLeft' || e.key === 'j' || e.key === 'J') {
         e.preventDefault();
         this.skipTime(-10);
+        this.pulseCenterBtn(this.centerBtnRewind);
       } else if (e.key === 'f' || e.key === 'F') {
         e.preventDefault();
         this.toggleFullscreen();
       } else if (e.key === 'm' || e.key === 'M') {
         e.preventDefault();
         this.toggleMute();
-      } else if (e.key === 'e' || e.key === 'E') {
-        e.preventDefault();
-        this.toggleEnhancePanel();
       }
     });
   }
 
+  // ========================================================
+  // KONTROL TAMPILAN OVERLAY & TIMEOUT
+  // ========================================================
+  toggleControlsVisibility() {
+    if (this.videoContainer.classList.contains('user-idle')) {
+      this.showControls();
+    } else {
+      if (!this.video.paused) {
+        this.hideControls();
+      }
+    }
+  }
+
+  showControls() {
+    this.videoContainer.classList.remove('user-idle');
+    this.resetControlsTimeout();
+  }
+
+  hideControls() {
+    clearTimeout(this.controlsTimeout);
+    this.videoContainer.classList.add('user-idle');
+    if (this.seekPreviewTooltip) {
+      this.seekPreviewTooltip.classList.remove('active');
+    }
+  }
+
+  resetControlsTimeout() {
+    this.videoContainer.classList.remove('user-idle');
+    clearTimeout(this.controlsTimeout);
+    this.controlsTimeout = setTimeout(() => {
+      if (!this.video.paused) {
+        this.hideControls();
+      }
+    }, 3200);
+  }
+
+  pulseCenterBtn(btn) {
+    if (!btn) return;
+    btn.classList.remove('skip-pulse');
+    void btn.offsetWidth; // trigger reflow
+    btn.classList.add('skip-pulse');
+  }
+
+  updatePlayPauseIcons(isPlaying) {
+    const icon = isPlaying ? '⏸' : '▶';
+    if (this.btnPlayPause) this.btnPlayPause.textContent = icon;
+    if (this.centerPlayIcon) this.centerPlayIcon.textContent = icon;
+  }
+
   // Buka Pemutar Film/Serial
-  open(item, episodeIndex = 0) {
+  open(item, episodeIndex = null) {
     this.currentItem = item;
-    this.currentEpisodeIndex = episodeIndex;
     this.modal.classList.add('active');
     document.body.style.overflow = 'hidden';
 
     this.playerTitle.textContent = item.title;
+    this.videoContainer.classList.add('is-paused');
+    this.videoContainer.classList.remove('user-idle');
+    this.updatePlayPauseIcons(false);
+    this.showControls();
 
     if (item.type === 'series') {
       this.sidebar.classList.remove('hidden');
+
+      // Tentukan episode mana yang diputar:
+      // Gunakan episodeIndex jika diberikan, atau cek riwayat episode terakhir dari localStorage
+      let targetIndex = 0;
+      if (typeof episodeIndex === 'number' && episodeIndex >= 0) {
+        targetIndex = episodeIndex;
+      } else {
+        try {
+          const saved = localStorage.getItem(`bisanonton_progress_${item.id}`);
+          if (saved) {
+            const data = JSON.parse(saved);
+            if (data && typeof data.episodeIndex === 'number' && data.episodeIndex < (item.episodes || []).length) {
+              targetIndex = data.episodeIndex;
+            }
+          }
+        } catch (e) {}
+      }
+
+      this.currentEpisodeIndex = targetIndex;
       this.renderEpisodeList();
-      this.playEpisode(episodeIndex);
+      this.playEpisode(targetIndex);
     } else {
+      this.currentEpisodeIndex = 0;
       this.sidebar.classList.add('hidden');
       this.playerSubtitle.textContent = item.genre || 'Film';
-      this.btnPrevEp.disabled = true;
-      this.btnNextEp.disabled = true;
+      if (this.btnPrevEp) this.btnPrevEp.disabled = true;
+      if (this.btnNextEp) this.btnNextEp.disabled = true;
       this.loadStream(item.stream_url);
     }
   }
@@ -249,10 +416,21 @@ class BisaPlayer {
     this.showLoading(true);
 
     if (!url) {
-      this.showToast('Link video belum diisi untuk film ini!');
+      this.showToast('Link video belum diisi untuk film / episode ini!');
       this.showLoading(false);
       return;
     }
+
+    // Selalu pastikan instance HLS sebelumnya sudah dihancurkan sebelum memuat stream baru
+    if (this.hls) {
+      this.hls.destroy();
+      this.hls = null;
+    }
+    if (this.previewHls) {
+      this.previewHls.destroy();
+      this.previewHls = null;
+    }
+    this.previewStreamLoaded = false;
 
     // Gunakan streaming proxy untuk link eksternal agar bebas dari blokir CORS CDN
     let streamUrl = url.trim();
@@ -260,11 +438,8 @@ class BisaPlayer {
       streamUrl = `/api/proxy?url=${encodeURIComponent(streamUrl)}`;
     }
 
-    // Bersihkan instance HLS sebelumnya
-    if (this.hls) {
-      this.hls.destroy();
-      this.hls = null;
-    }
+    // Simpan URL stream
+    this.currentStreamUrl = streamUrl;
 
     // Cek apakah browser mendukung Hls.js
     if (Hls.isSupported()) {
@@ -279,8 +454,16 @@ class BisaPlayer {
 
       this.hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
         this.setupQualityLevels(this.hls.levels);
+        this.showLoading(false);
+
+        // Periksa dan lanjutkan riwayat episode spesifik ini
+        this.checkResumeProgress();
+
         this.video.play().catch(err => {
           console.warn('Autoplay dibatasi browser:', err);
+          this.showLoading(false);
+          this.videoContainer.classList.add('is-paused');
+          this.updatePlayPauseIcons(false);
         });
       });
 
@@ -309,15 +492,39 @@ class BisaPlayer {
       this.video.src = streamUrl;
       this.video.addEventListener('loadedmetadata', () => {
         this.video.play().catch(console.warn);
+        this.checkResumeProgress();
       }, { once: true });
-      this.qualityLabel.textContent = 'Native';
-      this.qualityMenu.innerHTML = `<button class="quality-option active">Native Auto</button>`;
+      if (this.qualityLabel) this.qualityLabel.textContent = 'Native';
+      if (this.qualityMenu) this.qualityMenu.innerHTML = `<button class="quality-option active">Native Auto</button>`;
     } else {
       this.showToast('Browser Anda tidak mendukung pemutaran HLS video.');
     }
   }
 
-  // Render daftar episode di sidebar
+  // Muat stream ke video preview sekunder untuk Netflix-style live thumbnail
+  loadPreviewStream(streamUrl) {
+    if (!this.seekPreviewVideo) return;
+
+    if (this.previewHls) {
+      this.previewHls.destroy();
+      this.previewHls = null;
+    }
+
+    if (Hls.isSupported()) {
+      this.previewHls = new Hls({
+        enableWorker: false,
+        lowLatencyMode: false,
+        maxBufferLength: 10,
+        maxMaxBufferLength: 20
+      });
+      this.previewHls.loadSource(streamUrl);
+      this.previewHls.attachMedia(this.seekPreviewVideo);
+    } else if (this.seekPreviewVideo.canPlayType('application/vnd.apple.mpegurl')) {
+      this.seekPreviewVideo.src = streamUrl;
+    }
+  }
+
+  // Render daftar episode di sidebar dengan progress spesifik tiap episode
   renderEpisodeList() {
     const episodes = this.currentItem.episodes || [];
     this.episodeCountBadge.textContent = `${episodes.length} Episode`;
@@ -332,19 +539,51 @@ class BisaPlayer {
       return;
     }
 
+    const movieId = this.currentItem.id || this.currentItem.title;
+
     episodes.forEach((ep, idx) => {
+      const isCurrent = idx === this.currentEpisodeIndex;
+      const epKey = `bisanonton_prog_${movieId}_ep_${idx}`;
+
+      let epProgData = null;
+      try {
+        const raw = localStorage.getItem(epKey);
+        if (raw) epProgData = JSON.parse(raw);
+      } catch (e) {}
+
+      let statusText = isCurrent ? 'Sedang Diputar' : 'Putar';
+      let progBarHtml = '';
+
+      if (epProgData && epProgData.percent) {
+        if (epProgData.percent >= 92) {
+          statusText = '✓ Selesai Ditonton';
+        } else if (epProgData.percent >= 3) {
+          statusText = isCurrent 
+            ? `Sedang Diputar • ${epProgData.percent}% (${this.formatTime(epProgData.time)})`
+            : `Lanjutkan • ${epProgData.percent}% (${this.formatTime(epProgData.time)})`;
+          progBarHtml = `
+            <div class="episode-prog-track">
+              <div class="episode-prog-fill" style="width: ${epProgData.percent}%;"></div>
+            </div>
+          `;
+        }
+      }
+
       const epEl = document.createElement('div');
-      epEl.className = `episode-item ${idx === this.currentEpisodeIndex ? 'active' : ''}`;
+      epEl.className = `episode-item ${isCurrent ? 'active' : ''}`;
       epEl.innerHTML = `
         <div class="episode-num-badge">${ep.episode_number || (idx + 1)}</div>
         <div class="episode-details">
-          <div class="episode-name">${ep.title || `Episode ${idx + 1}`}</div>
-          <div class="episode-status">${idx === this.currentEpisodeIndex ? 'Sedang Diputar' : 'Putar'}</div>
+          <div class="episode-name" title="${ep.title || `Episode ${idx + 1}`}">${ep.title || `Episode ${idx + 1}`}</div>
+          <div class="episode-status">${statusText}</div>
+          ${progBarHtml}
         </div>
       `;
 
       epEl.addEventListener('click', () => {
-        this.playEpisode(idx);
+        if (idx !== this.currentEpisodeIndex) {
+          this.playEpisode(idx);
+        }
       });
 
       this.episodeList.appendChild(epEl);
@@ -356,28 +595,40 @@ class BisaPlayer {
     const episodes = this.currentItem.episodes || [];
     if (index < 0 || index >= episodes.length) return;
 
+    // 1. Simpan progress episode yang sedang ditonton sebelumnya
+    this.saveWatchProgress();
+
+    // 2. Hentikan video dan reset posisi waktu
+    if (this.video) {
+      this.video.pause();
+      this.video.removeAttribute('src');
+      this.video.currentTime = 0;
+    }
+
+    // 3. Hancurkan instance HLS lama agar tidak bentrok dengan stream episode baru
+    if (this.hls) {
+      this.hls.destroy();
+      this.hls = null;
+    }
+    if (this.previewHls) {
+      this.previewHls.destroy();
+      this.previewHls = null;
+    }
+    this.previewStreamLoaded = false;
+
     this.currentEpisodeIndex = index;
     const currentEp = episodes[index];
 
     this.playerSubtitle.textContent = `${currentEp.title || `Episode ${index + 1}`}`;
 
-    // Update active class di sidebar
-    const allItems = this.episodeList.querySelectorAll('.episode-item');
-    allItems.forEach((el, idx) => {
-      if (idx === index) {
-        el.classList.add('active');
-        el.querySelector('.episode-status').textContent = 'Sedang Diputar';
-      } else {
-        el.classList.remove('active');
-        el.querySelector('.episode-status').textContent = 'Putar';
-      }
-    });
+    // Update active class & progress bar di sidebar
+    this.renderEpisodeList();
 
     // Update prev/next button states
-    this.btnPrevEp.disabled = index === 0;
-    this.btnNextEp.disabled = index === episodes.length - 1;
+    if (this.btnPrevEp) this.btnPrevEp.disabled = index === 0;
+    if (this.btnNextEp) this.btnNextEp.disabled = index === episodes.length - 1;
 
-    // Load stream link
+    // Load stream link episode baru
     this.loadStream(currentEp.stream_url);
   }
 
@@ -396,7 +647,10 @@ class BisaPlayer {
 
   // Ketika video selesai diputar (ended)
   onVideoEnded() {
-    this.btnPlayPause.textContent = '▶';
+    this.updatePlayPauseIcons(false);
+
+    // Hapus riwayat progress tontonan karena video sudah tamat
+    this.clearWatchProgress();
 
     // Jika serial dan masih ada episode berikutnya -> Jalankan Auto-Play
     if (this.currentItem && this.currentItem.type === 'series') {
@@ -417,7 +671,6 @@ class BisaPlayer {
     this.autoplayNextTitle.textContent = nextEp.title || `Episode ${nextIndex + 1}`;
     this.autoplayOverlay.classList.remove('hidden');
 
-    let secondsLeft = 5;
     this.countdownBarFill.style.transition = 'none';
     this.countdownBarFill.style.width = '100%';
 
@@ -438,11 +691,14 @@ class BisaPlayer {
       clearTimeout(this.autoplayTimer);
       this.autoplayTimer = null;
     }
-    this.autoplayOverlay.classList.add('hidden');
+    if (this.autoplayOverlay) {
+      this.autoplayOverlay.classList.add('hidden');
+    }
   }
 
   // Setup dropdown pilihan kualitas dari Hls.js
   setupQualityLevels(levels) {
+    if (!this.qualityMenu || !this.qualityLabel) return;
     this.qualityMenu.innerHTML = '';
 
     if (!levels || levels.length === 0) {
@@ -491,11 +747,24 @@ class BisaPlayer {
   // Play / Pause
   togglePlay() {
     if (this.video.paused || this.video.ended) {
-      this.video.play();
-      this.flashCenterIcon('▶');
+      this.video.play().catch(err => {
+        console.warn('Autoplay dibatasi browser:', err);
+      });
+      this.updatePlayPauseIcons(true);
+      this.videoContainer.classList.remove('is-paused');
+      this.resetControlsTimeout();
     } else {
       this.video.pause();
-      this.flashCenterIcon('⏸');
+      this.updatePlayPauseIcons(false);
+      this.videoContainer.classList.add('is-paused');
+      this.showControls();
+    }
+
+    // Animasi pulse pada tombol play/pause di tengah
+    if (this.centerBtnPlayPause) {
+      this.centerBtnPlayPause.classList.remove('pulse-action');
+      void this.centerBtnPlayPause.offsetWidth; // trigger reflow
+      this.centerBtnPlayPause.classList.add('pulse-action');
     }
   }
 
@@ -507,11 +776,14 @@ class BisaPlayer {
     const newTime = Math.max(0, Math.min(duration, current + seconds));
     this.video.currentTime = newTime;
     this.onTimeUpdate();
+    this.resetControlsTimeout();
+    this.saveWatchProgress();
 
+    // Animasi pulse pada tombol skip yang ditekan
     if (seconds < 0) {
-      this.flashCenterIcon('⏪ -10s');
+      this.pulseCenterBtn(this.centerBtnRewind);
     } else {
-      this.flashCenterIcon('+10s ⏩');
+      this.pulseCenterBtn(this.centerBtnForward);
     }
   }
 
@@ -534,25 +806,6 @@ class BisaPlayer {
         }
       });
     }
-    this.flashCenterIcon(`⚡ ${speed}x`);
-  }
-
-  // Stop playback and reset to beginning (tetap dipertahankan untuk backward compatibility)
-  stop() {
-    if (this.video) {
-      this.video.pause();
-      this.video.currentTime = 0;
-    }
-    this.flashCenterIcon('⏹');
-    this.onTimeUpdate();
-  }
-
-  flashCenterIcon(iconText) {
-    this.centerPlayIcon.textContent = iconText;
-    this.centerPlayOverlay.classList.add('show-flash');
-    setTimeout(() => {
-      this.centerPlayOverlay.classList.remove('show-flash');
-    }, 400);
   }
 
   // Time & Progress Update
@@ -567,6 +820,13 @@ class BisaPlayer {
     this.progressThumb.style.left = `${percent}%`;
 
     this.timeDisplay.textContent = `${this.formatTime(current)} / ${this.formatTime(duration)}`;
+
+    // Simpan progress tontonan ke localStorage setiap 3 detik
+    const now = Date.now();
+    if (now - this.lastSaveTime > 3000) {
+      this.lastSaveTime = now;
+      this.saveWatchProgress();
+    }
   }
 
   updateBuffer() {
@@ -594,40 +854,244 @@ class BisaPlayer {
     return `${m}:${s}`;
   }
 
-  // Seeking events
+  // ========================================================
+  // SEEKING & SCRUBBING (Touch & Mouse Support)
+  // ========================================================
   startSeek(e) {
     this.isDraggingSeek = true;
-    this.doSeek(e);
+    this.progressBar.classList.add('dragging');
+    this.doSeek(e.clientX);
   }
 
-  doSeek(e) {
+  startSeekTouch(e) {
+    e.preventDefault();
+    this.isDraggingSeek = true;
+    this.progressBar.classList.add('dragging');
+    if (e.touches && e.touches[0]) {
+      this.doSeek(e.touches[0].clientX);
+    }
+  }
+
+  doSeek(clientX) {
     if (!this.isDraggingSeek) return;
     const rect = this.progressBar.getBoundingClientRect();
-    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const targetTime = pos * (this.video.duration || 0);
+    const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const duration = this.video.duration || 0;
+    const targetTime = pos * duration;
 
     this.progressFilled.style.width = `${pos * 100}%`;
     this.progressThumb.style.left = `${pos * 100}%`;
-    this.timeDisplay.textContent = `${this.formatTime(targetTime)} / ${this.formatTime(this.video.duration || 0)}`;
+    this.timeDisplay.textContent = `${this.formatTime(targetTime)} / ${this.formatTime(duration)}`;
+
+    // Live Scrub Preview
+    this.updateSeekPreview(clientX);
+  }
+
+  updateSeekPreview(clientX) {
+    if (!this.video || !this.video.duration || !this.seekPreviewTooltip) return;
+
+    // Lazy load preview stream pada saat user pertama kali menggeser/hover scrubber
+    if (this.currentStreamUrl && !this.previewStreamLoaded) {
+      this.previewStreamLoaded = true;
+      this.loadPreviewStream(this.currentStreamUrl);
+    }
+
+    const barRect = this.progressBar.getBoundingClientRect();
+    const containerRect = this.videoContainer.getBoundingClientRect();
+    const pos = Math.max(0, Math.min(1, (clientX - barRect.left) / barRect.width));
+    const targetTime = pos * this.video.duration;
+
+    // Update label waktu
+    if (this.seekPreviewTime) {
+      this.seekPreviewTime.textContent = this.formatTime(targetTime);
+    }
+
+    // Update frame video preview secara instan
+    if (this.seekPreviewVideo && !isNaN(targetTime)) {
+      this.seekPreviewVideo.currentTime = targetTime;
+    }
+
+    // Posisikan tooltip di atas kursor/jari dengan clamping batas layar
+    const relX = clientX - containerRect.left;
+    const minX = 85;
+    const maxX = containerRect.width - 85;
+    const clampedX = Math.max(minX, Math.min(maxX, relX));
+
+    this.seekPreviewTooltip.style.left = `${clampedX}px`;
+    this.seekPreviewTooltip.classList.add('active');
   }
 
   endSeek() {
     if (!this.isDraggingSeek) return;
     this.isDraggingSeek = false;
+    this.progressBar.classList.remove('dragging');
+
     const percent = parseFloat(this.progressFilled.style.width) / 100;
-    if (!isNaN(percent)) {
-      this.video.currentTime = percent * (this.video.duration || 0);
+    if (!isNaN(percent) && this.video.duration) {
+      this.video.currentTime = percent * this.video.duration;
+      this.saveWatchProgress();
     }
+
+    if (this.seekPreviewTooltip) {
+      this.seekPreviewTooltip.classList.remove('active');
+    }
+  }
+
+  // ========================================================
+  // REMEMBER WATCH PROGRESS (LocalStorage Per-Device)
+  // ========================================================
+  getProgressKey() {
+    if (!this.currentItem) return null;
+    const id = this.currentItem.id || this.currentItem.title;
+    if (this.currentItem.type === 'series') {
+      return `bisanonton_prog_${id}_ep_${this.currentEpisodeIndex}`;
+    }
+    return `bisanonton_prog_${id}`;
+  }
+
+  saveWatchProgress() {
+    if (!this.currentItem || !this.video || !this.video.duration) return;
+    const current = this.video.currentTime || 0;
+    const duration = this.video.duration || 0;
+    const percent = (current / duration) * 100;
+    const key = this.getProgressKey();
+    if (!key) return;
+
+    // Video sudah hampir selesai (> 92%) atau tamat -> bersihkan progress
+    if (percent >= 92 || this.video.ended) {
+      this.clearWatchProgress();
+      return;
+    }
+
+    // Simpan jika sudah ditonton lebih dari 3 detik
+    if (current > 3) {
+      try {
+        const data = {
+          id: this.currentItem.id,
+          title: this.currentItem.title,
+          type: this.currentItem.type,
+          episodeIndex: this.currentEpisodeIndex,
+          episodeTitle: this.currentItem.type === 'series' && this.currentItem.episodes?.[this.currentEpisodeIndex] 
+            ? this.currentItem.episodes[this.currentEpisodeIndex].title 
+            : null,
+          time: Math.floor(current),
+          duration: Math.floor(duration),
+          percent: Math.min(100, Math.max(1, Math.round(percent))),
+          updatedAt: Date.now()
+        };
+
+        // 1. Simpan progress spesifik per-episode!
+        localStorage.setItem(key, JSON.stringify(data));
+
+        // 2. Simpan juga penanda episode terakhir aktif pada serial untuk kartu beranda & auto-resume serial
+        if (this.currentItem.id) {
+          localStorage.setItem(`bisanonton_progress_${this.currentItem.id}`, JSON.stringify(data));
+        }
+
+        window.dispatchEvent(new Event('storage'));
+      } catch (e) {
+        // LocalStorage quota or privacy mode
+      }
+    }
+  }
+
+  clearWatchProgress() {
+    const key = this.getProgressKey();
+    if (!key) return;
+    try {
+      localStorage.removeItem(key);
+      if (this.currentItem && this.currentItem.id) {
+        if (this.currentItem.type === 'series') {
+          const finishedData = {
+            id: this.currentItem.id,
+            title: this.currentItem.title,
+            type: 'series',
+            episodeIndex: this.currentEpisodeIndex,
+            time: 0,
+            percent: 100,
+            completed: true,
+            updatedAt: Date.now()
+          };
+          localStorage.setItem(`bisanonton_progress_${this.currentItem.id}`, JSON.stringify(finishedData));
+        } else {
+          localStorage.removeItem(`bisanonton_progress_${this.currentItem.id}`);
+        }
+      }
+      window.dispatchEvent(new Event('storage'));
+    } catch (e) {}
+  }
+
+  checkResumeProgress() {
+    const key = this.getProgressKey();
+    if (!key) return false;
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) {
+        // Episode ini belum pernah ditonton sebelumnya, pastikan mulai dari 00:00
+        if (this.video) this.video.currentTime = 0;
+        return false;
+      }
+      const data = JSON.parse(raw);
+      if (data && data.time && data.time > 3) {
+        // Jika durasi sudah diketahui dan progress bukan di akhir
+        if (!this.video.duration || data.time < this.video.duration * 0.92) {
+          this.video.currentTime = data.time;
+          const label = this.currentItem.type === 'series'
+            ? `Episode ${(this.currentEpisodeIndex + 1)} dari <strong>${this.formatTime(data.time)}</strong> ⏱️`
+            : `dari <strong>${this.formatTime(data.time)}</strong> ⏱️`;
+          this.showResumeToast(data.time, label);
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn('Gagal membaca progress tontonan:', e);
+    }
+    return false;
+  }
+
+  showResumeToast(savedTime, customLabel = null) {
+    const formatted = this.formatTime(savedTime);
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toastMsg');
+    if (!toast || !toastMsg) return;
+
+    const labelText = customLabel || `dari <strong>${formatted}</strong> ⏱️`;
+    toastMsg.innerHTML = `
+      <span>Melanjutkan ${labelText}</span>
+      <button id="btnRestartPlayback" style="margin-left:10px;padding:3px 9px;background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:4px;cursor:pointer;font-size:0.75rem;font-weight:700;">Ulang (00:00)</button>
+    `;
+    toast.classList.add('show');
+
+    const restartBtn = document.getElementById('btnRestartPlayback');
+    if (restartBtn) {
+      restartBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (this.video) {
+          this.video.currentTime = 0;
+          this.onTimeUpdate();
+        }
+        this.clearWatchProgress();
+        toast.classList.remove('show');
+        this.renderEpisodeList();
+      };
+    }
+
+    setTimeout(() => {
+      toast.classList.remove('show');
+    }, 6000);
   }
 
   // Volume & Mute
   toggleMute() {
     this.video.muted = !this.video.muted;
-    this.volumeSlider.value = this.video.muted ? 0 : (this.video.volume || 1);
+    if (this.volumeSlider) {
+      this.volumeSlider.value = this.video.muted ? 0 : (this.video.volume || 1);
+    }
     this.updateVolumeIcon();
   }
 
   updateVolumeIcon() {
+    if (!this.btnMute) return;
     if (this.video.muted || this.video.volume === 0) {
       this.btnMute.textContent = '🔇';
     } else if (this.video.volume < 0.5) {
@@ -641,14 +1105,12 @@ class BisaPlayer {
   toggleFullscreen() {
     const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
     if (!fsEl) {
-      // Enter fullscreen on the video container
       const el = this.videoContainer;
       if (el.requestFullscreen) {
         el.requestFullscreen();
       } else if (el.webkitRequestFullscreen) {
-        el.webkitRequestFullscreen(); // Android TV / older Chrome
+        el.webkitRequestFullscreen();
       } else if (el.webkitEnterFullscreen) {
-        // iOS fallback — request on video element directly
         this.video.webkitEnterFullscreen();
       }
     } else {
@@ -660,18 +1122,8 @@ class BisaPlayer {
     }
   }
 
-  // Idle controls hide
-  resetControlsTimeout() {
-    this.videoContainer.classList.remove('user-idle');
-    clearTimeout(this.controlsTimeout);
-    this.controlsTimeout = setTimeout(() => {
-      if (!this.video.paused) {
-        this.videoContainer.classList.add('user-idle');
-      }
-    }, 3000);
-  }
-
   showLoading(show) {
+    if (!this.loadingSpinner) return;
     if (show) {
       this.loadingSpinner.classList.add('active');
     } else {
@@ -691,6 +1143,7 @@ class BisaPlayer {
   }
 
   close() {
+    this.saveWatchProgress();
     this.cancelAutoplay();
     this.video.pause();
     this.video.src = '';
@@ -698,226 +1151,15 @@ class BisaPlayer {
       this.hls.destroy();
       this.hls = null;
     }
+    if (this.previewHls) {
+      this.previewHls.destroy();
+      this.previewHls = null;
+    }
     this.modal.classList.remove('active');
+    this.videoContainer.classList.remove('is-paused');
     if (this.speedMenu) this.speedMenu.classList.remove('show');
     if (this.qualityMenu) this.qualityMenu.classList.remove('show');
-    if (this.enhancePanel) this.enhancePanel.classList.add('hidden');
     document.body.style.overflow = '';
-  }
-
-  // ========================================================
-  // VIDEO ENHANCEMENT SYSTEM
-  // Real-time GPU-accelerated video filters
-  // ========================================================
-
-  initEnhancement() {
-    // Load saved preferences from localStorage
-    this.loadEnhancePrefs();
-
-    // Enhancement button toggle
-    if (this.btnEnhance) {
-      this.btnEnhance.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.toggleEnhancePanel();
-      });
-    }
-
-    // Panel close button
-    if (this.enhancePanelClose) {
-      this.enhancePanelClose.addEventListener('click', () => {
-        this.enhancePanel.classList.add('hidden');
-      });
-    }
-
-    // Preset buttons
-    const presetBtns = document.querySelectorAll('.enhance-preset-btn');
-    presetBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const preset = btn.dataset.preset;
-        this.setEnhancePreset(preset);
-      });
-    });
-
-    // Slider inputs — real-time update
-    const sliders = document.querySelectorAll('.enhance-slider');
-    sliders.forEach(slider => {
-      slider.addEventListener('input', () => {
-        const prop = slider.dataset.prop;
-        const value = parseInt(slider.value);
-        this.enhanceValues[prop] = value;
-        this.activePreset = 'custom';
-        this.updateEnhanceUI();
-        this.applyEnhancement();
-        this.saveEnhancePrefs();
-      });
-    });
-
-    // Reset button
-    if (this.enhanceResetBtn) {
-      this.enhanceResetBtn.addEventListener('click', () => {
-        this.setEnhancePreset('original');
-      });
-    }
-
-    // Apply saved enhancement on init
-    this.updateEnhanceUI();
-    this.applyEnhancement();
-  }
-
-  toggleEnhancePanel() {
-    if (!this.enhancePanel) return;
-    // Close other menus
-    if (this.speedMenu) this.speedMenu.classList.remove('show');
-    if (this.qualityMenu) this.qualityMenu.classList.remove('show');
-    this.enhancePanel.classList.toggle('hidden');
-  }
-
-  setEnhancePreset(presetName) {
-    const preset = this.enhancePresets[presetName];
-    if (!preset) return;
-
-    this.activePreset = presetName;
-    this.enhanceValues = { ...preset };
-    this.updateEnhanceUI();
-    this.applyEnhancement();
-    this.saveEnhancePrefs();
-
-    // Flash toast
-    const presetNames = { original: 'Original', cinema: '🎬 Cinema', vivid: '🌈 Vivid', sharp: '🔪 Sharp' };
-    this.flashCenterIcon(`✨ ${presetNames[presetName] || presetName}`);
-  }
-
-  applyEnhancement() {
-    if (!this.video) return;
-
-    const { sharpness, brightness, contrast, saturation, warmth } = this.enhanceValues;
-
-    // 1. Build CSS filter chain
-    let filterParts = [];
-
-    // Sharpness via SVG filter
-    if (sharpness > 0 && this.sharpenKernel) {
-      // Unsharp mask: center value increases with sharpness
-      // kernel = [0, -s, 0, -s, 1+4s, -s, 0, -s, 0]
-      const s = sharpness / 100; // 0 to 1
-      const center = 1 + (4 * s);
-      const edge = -s;
-      const kernel = `0 ${edge} 0 ${edge} ${center} ${edge} 0 ${edge} 0`;
-      this.sharpenKernel.setAttribute('kernelMatrix', kernel);
-      filterParts.push('url(#svgSharpen)');
-    } else if (this.sharpenKernel) {
-      // Reset to identity kernel (no sharpening)
-      this.sharpenKernel.setAttribute('kernelMatrix', '0 0 0 0 1 0 0 0 0');
-    }
-
-    // Brightness
-    if (brightness !== 100) {
-      filterParts.push(`brightness(${brightness / 100})`);
-    }
-
-    // Contrast
-    if (contrast !== 100) {
-      filterParts.push(`contrast(${contrast / 100})`);
-    }
-
-    // Saturation
-    if (saturation !== 100) {
-      filterParts.push(`saturate(${saturation / 100})`);
-    }
-
-    // Warmth (sepia + hue-rotate to shift towards warm tones)
-    if (warmth > 0) {
-      filterParts.push(`sepia(${warmth / 100})`);
-      filterParts.push(`hue-rotate(-10deg)`);
-    }
-
-    // 2. Apply combined filter string to video element
-    if (filterParts.length > 0) {
-      this.video.style.filter = filterParts.join(' ');
-    } else {
-      this.video.style.filter = 'none';
-    }
-
-    // 3. Update enhance button active state
-    const isEnhanced = sharpness > 0 || brightness !== 100 || contrast !== 100 || saturation !== 100 || warmth > 0;
-    if (this.btnEnhance) {
-      if (isEnhanced) {
-        this.btnEnhance.classList.add('enhance-active');
-      } else {
-        this.btnEnhance.classList.remove('enhance-active');
-      }
-    }
-  }
-
-  updateEnhanceUI() {
-    const { sharpness, brightness, contrast, saturation, warmth } = this.enhanceValues;
-
-    // Update slider positions
-    const sliderMap = {
-      sliderSharpness: sharpness,
-      sliderBrightness: brightness,
-      sliderContrast: contrast,
-      sliderSaturation: saturation,
-      sliderWarmth: warmth
-    };
-
-    for (const [id, val] of Object.entries(sliderMap)) {
-      const slider = document.getElementById(id);
-      if (slider) slider.value = val;
-    }
-
-    // Update value labels
-    const valMap = {
-      valSharpness: `${sharpness}%`,
-      valBrightness: `${brightness}%`,
-      valContrast: `${contrast}%`,
-      valSaturation: `${saturation}%`,
-      valWarmth: `${warmth}%`
-    };
-
-    for (const [id, text] of Object.entries(valMap)) {
-      const label = document.getElementById(id);
-      if (label) label.textContent = text;
-    }
-
-    // Update preset active state
-    const presetBtns = document.querySelectorAll('.enhance-preset-btn');
-    presetBtns.forEach(btn => {
-      if (btn.dataset.preset === this.activePreset) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    });
-  }
-
-  saveEnhancePrefs() {
-    try {
-      const data = {
-        values: this.enhanceValues,
-        preset: this.activePreset
-      };
-      localStorage.setItem('bisanonton_enhance', JSON.stringify(data));
-    } catch (e) {
-      // localStorage might be unavailable
-    }
-  }
-
-  loadEnhancePrefs() {
-    try {
-      const saved = localStorage.getItem('bisanonton_enhance');
-      if (saved) {
-        const data = JSON.parse(saved);
-        if (data.values) {
-          this.enhanceValues = { ...this.enhancePresets.original, ...data.values };
-        }
-        if (data.preset) {
-          this.activePreset = data.preset;
-        }
-      }
-    } catch (e) {
-      // Fallback to defaults
-    }
   }
 }
 
