@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/">
   <title>Bisa Nonton - Nonton Film & Serial Favorit</title>
   <meta name="description" content="Koleksi film dan serial favorit pilihan dengan pemutar streaming berkecepatan tinggi dan kualitas jernih.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎬</text></svg>">
   
   <!-- CSS Stylesheets -->
-  <link rel="stylesheet" href="css/style.css?v=1.2.1">
-  <link rel="stylesheet" href="css/player.css?v=1.2.1">
+  <link rel="stylesheet" href="/css/style.css?v=2.1">
+  <link rel="stylesheet" href="/css/player.css?v=2.1">
 
   <!-- Theme Manager (Load in head to prevent theme flashing) -->
-  <script src="js/theme.js"></script>
+  <script src="/js/theme.js?v=2.1"></script>
 </head>
 <body>
 
@@ -25,11 +26,9 @@
     </div>
 
     <div class="nav-actions">
-      <!-- Theme Switcher (Light / Dark Mode) -->
-      <button class="theme-toggle-btn" title="Ganti Mode Tampilan">
-        <span class="theme-icon">🌙</span>
-        <span class="theme-text">Mode Gelap</span>
-      </button>
+      <a href="/admin" class="btn btn-secondary" style="padding: 0.45rem 0.95rem; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem;" title="Kelola Koleksi Film">
+        ⚙️ <span>Admin</span>
+      </a>
     </div>
   </header>
 
@@ -57,10 +56,16 @@
       </div>
     </div>
 
-    <!-- Netflix-style floating Sound Toggle (Mute / Unmute with 70% fadein) -->
-    <button class="hero-sound-btn" id="heroSoundToggle" title="Nyalakan Suara Cuplikan (Volume 70%)">
+    <!-- Subtle Fade Navigation Arrows for Cover Slider -->
+    <button class="hero-arrow hero-arrow-prev" id="heroArrowPrev" title="Cover Sebelumnya" aria-label="Cover Sebelumnya">❮</button>
+    <button class="hero-arrow hero-arrow-next" id="heroArrowNext" title="Cover Berikutnya" aria-label="Cover Berikutnya">❯</button>
+
+    <!-- Slide Dots Indicator -->
+    <div class="hero-dots" id="heroDots"></div>
+
+    <!-- Minimalist Floating Speaker Button (30% Opacity di kanan bawah) -->
+    <button class="hero-sound-btn" id="heroSoundToggle" title="Nyalakan / Matikan Suara Cuplikan" aria-label="Toggle Suara Cuplikan">
       <span class="sound-icon" id="heroSoundIcon">🔇</span>
-      <span class="sound-label" id="heroSoundLabel">Suara (70%)</span>
     </button>
 
     <!-- Scroll Down Helper -->
@@ -258,7 +263,7 @@
 
   <!-- Application Scripts (Non-blocking at bottom) -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script src="js/player.js?v=1.2.1"></script>
-  <script src="js/app.js?v=1.2.1"></script>
+  <script src="/js/player.js?v=2.1"></script>
+  <script src="/js/app.js?v=2.1"></script>
 </body>
 </html>
