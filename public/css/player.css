@@ -9,14 +9,15 @@
   background: rgba(5, 7, 12, 0.95);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
-  display: flex;
+  display: none;
   flex-direction: column;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
 }
 
 .player-modal.active {
+  display: flex;
   opacity: 1;
   pointer-events: auto;
 }
@@ -110,39 +111,147 @@ video#main-video-element {
   cursor: pointer;
 }
 
-/* Big Center Play Indicator */
-.center-play-overlay {
+/* ========================================================
+   CENTER OVERLAY CONTROLS (Transparent with 3 Action Buttons)
+   ======================================================== */
+.video-center-controls {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: none;
+  gap: 3rem;
+  z-index: 12;
+  background: radial-gradient(circle at center, rgba(5, 7, 12, 0.45) 0%, rgba(5, 7, 12, 0.25) 50%, transparent 80%);
   opacity: 0;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  transform: scale(0.85);
+  pointer-events: none;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: scale(0.95);
 }
 
-.center-play-overlay.show-flash {
+.video-container.controls-active .video-center-controls,
+.video-container.is-paused .video-center-controls,
+.video-container:not(.user-idle) .video-center-controls {
   opacity: 1;
-  transform: scale(1.1);
+  pointer-events: auto;
+  transform: scale(1);
 }
 
-.center-play-btn-circle {
-  min-width: 72px;
-  height: 72px;
-  padding: 0 1.25rem;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 36px;
+.center-btn {
+  background: rgba(14, 18, 28, 0.75);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.center-btn:hover {
+  background: rgba(255, 51, 102, 0.25);
+  border-color: var(--primary);
+  transform: scale(1.1);
+  box-shadow: 0 0 25px rgba(255, 51, 102, 0.45);
+}
+
+.center-btn:active {
+  transform: scale(0.92);
+}
+
+/* Play/Pause Button (Tengah) */
+.center-btn-playpause {
+  width: 72px;
+  height: 72px;
+  font-size: 1.85rem;
+  background: var(--primary-gradient);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 10px 30px rgba(255, 51, 102, 0.4);
+}
+
+/* Animasi pulse ambient saat video siap diputar (paused) */
+.video-container.is-paused .center-btn-playpause {
+  animation: playGlowAmbient 2s infinite ease-in-out;
+}
+
+@keyframes playGlowAmbient {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 10px 30px rgba(255, 51, 102, 0.4), 0 0 0 0 rgba(255, 51, 102, 0.4);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 12px 35px rgba(255, 51, 102, 0.8), 0 0 0 12px rgba(255, 51, 102, 0);
+  }
+}
+
+.center-btn-playpause.pulse-action {
+  animation: playPulseAction 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes playPulseAction {
+  0% { transform: scale(0.9); }
+  50% { transform: scale(1.22); box-shadow: 0 0 35px var(--primary); }
+  100% { transform: scale(1); }
+}
+
+.center-btn-playpause:hover {
+  background: var(--primary);
+  transform: scale(1.12);
+  box-shadow: 0 0 30px rgba(255, 51, 102, 0.7);
+}
+
+.center-btn-playpause span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* Skip 10s Buttons (Kiri & Kanan) */
+.center-btn-skip {
+  position: relative;
+  width: 56px;
+  height: 56px;
+}
+
+.center-btn-skip svg {
+  width: 28px;
+  height: 28px;
   color: #fff;
-  font-size: 1.4rem;
-  font-weight: 700;
-  white-space: nowrap;
+  transition: transform 0.15s ease;
+}
+
+.center-skip-badge {
+  position: absolute;
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #fff;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -46%);
+  pointer-events: none;
+  letter-spacing: -0.5px;
+}
+
+.center-btn-skip:hover svg {
+  transform: scale(1.08);
+}
+
+.center-btn-skip.skip-pulse {
+  animation: skipPulse 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes skipPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.25); background: rgba(255, 51, 102, 0.4); border-color: var(--primary); }
+  100% { transform: scale(1); }
 }
 
 /* Loading Spinner */
@@ -196,6 +305,60 @@ video#main-video-element {
   pointer-events: none;
 }
 
+/* ========================================================
+   SEEK PREVIEW TOOLTIP (Netflix Style)
+   ======================================================== */
+.seek-preview-tooltip {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 0;
+  transform: translateX(-50%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  z-index: 35;
+  transition: opacity 0.15s ease;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.7));
+}
+
+.seek-preview-tooltip.active {
+  display: flex;
+}
+
+.seek-preview-thumb {
+  width: 154px;
+  height: 86px;
+  background: #0a0d14;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 51, 102, 0.2);
+}
+
+.seek-preview-thumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+  display: block;
+}
+
+.seek-preview-time {
+  margin-top: 6px;
+  padding: 0.2rem 0.65rem;
+  background: rgba(14, 18, 28, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
 /* Scrubber / Progress Bar */
 .progress-container {
   width: 100%;
@@ -205,10 +368,23 @@ video#main-video-element {
   position: relative;
   cursor: pointer;
   transition: height 0.15s ease;
+  touch-action: none; /* Mencegah page scroll saat dragging scrubber */
 }
 
-.progress-container:hover {
-  height: 10px;
+/* Invisible expanded touch hit area for mobile fingertips */
+.progress-container::before {
+  content: '';
+  position: absolute;
+  top: -14px;
+  bottom: -14px;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.progress-container:hover,
+.progress-container.dragging {
+  height: 9px;
 }
 
 .progress-filled {
@@ -220,6 +396,7 @@ video#main-video-element {
   border-radius: 4px;
   width: 0%;
   pointer-events: none;
+  box-shadow: 0 0 10px rgba(255, 51, 102, 0.5);
 }
 
 .progress-buffer {
@@ -241,13 +418,17 @@ video#main-video-element {
   background: #fff;
   border-radius: 50%;
   transform: translate(-50%, -50%) scale(0);
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
-  transition: transform 0.15s ease;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+  transition: transform 0.15s ease, background 0.15s ease;
   pointer-events: none;
+  z-index: 3;
 }
 
-.progress-container:hover .progress-thumb {
-  transform: translate(-50%, -50%) scale(1);
+.progress-container:hover .progress-thumb,
+.progress-container.dragging .progress-thumb {
+  transform: translate(-50%, -50%) scale(1.25);
+  background: #fff;
+  box-shadow: 0 0 12px var(--primary);
 }
 
 /* Controls row */
@@ -585,7 +766,9 @@ video#main-video-element {
 .episode-details {
   display: flex;
   flex-direction: column;
+  flex: 1;
   overflow: hidden;
+  gap: 2px;
 }
 
 .episode-name {
@@ -604,6 +787,22 @@ video#main-video-element {
 .episode-status {
   font-size: 0.75rem;
   color: var(--text-dim);
+}
+
+.episode-prog-track {
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+
+.episode-prog-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 2px;
+  box-shadow: 0 0 6px var(--primary);
 }
 
 /* ========================================================
@@ -706,236 +905,6 @@ video#main-video-element {
 }
 
 /* ========================================================
-   VIDEO ENHANCEMENT PANEL
-   Floating settings panel for real-time video filters.
-   ======================================================== */
-
-.enhance-panel {
-  position: absolute;
-  bottom: 5.5rem;
-  right: 1rem;
-  width: 300px;
-  background: rgba(14, 18, 28, 0.96);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-md);
-  padding: 1rem;
-  z-index: 30;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 15px rgba(255, 51, 102, 0.1);
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-  animation: enhancePanelIn 0.25s ease;
-  max-height: calc(100vh - 8rem);
-  overflow-y: auto;
-}
-
-.enhance-panel.hidden {
-  display: none;
-}
-
-@keyframes enhancePanelIn {
-  from { opacity: 0; transform: translateY(12px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-/* Panel Header */
-.enhance-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.enhance-panel-title {
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.3px;
-}
-
-.enhance-panel-close {
-  background: rgba(255, 255, 255, 0.08);
-  border: none;
-  color: #94a3b8;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 0.8rem;
-  transition: var(--transition);
-}
-
-.enhance-panel-close:hover {
-  background: rgba(255, 51, 102, 0.5);
-  color: #fff;
-}
-
-/* Preset Buttons */
-.enhance-presets {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.4rem;
-}
-
-.enhance-preset-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
-  padding: 0.45rem 0.3rem;
-  border-radius: 8px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition);
-  white-space: nowrap;
-  text-align: center;
-}
-
-.enhance-preset-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.enhance-preset-btn.active {
-  background: rgba(255, 51, 102, 0.2);
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-/* Sliders */
-.enhance-sliders {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-}
-
-.enhance-slider-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.enhance-slider-label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.78rem;
-  color: #cbd5e1;
-}
-
-.enhance-slider-value {
-  font-weight: 700;
-  font-size: 0.75rem;
-  color: var(--primary);
-  min-width: 36px;
-  text-align: right;
-}
-
-.enhance-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 3px;
-  outline: none;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.enhance-slider:hover {
-  background: rgba(255, 255, 255, 0.18);
-}
-
-/* Slider Thumb */
-.enhance-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0 6px rgba(255, 51, 102, 0.5), 0 2px 4px rgba(0, 0, 0, 0.4);
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.enhance-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 10px rgba(255, 51, 102, 0.7), 0 2px 6px rgba(0, 0, 0, 0.5);
-}
-
-.enhance-slider::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #fff;
-  border: none;
-  box-shadow: 0 0 6px rgba(255, 51, 102, 0.5), 0 2px 4px rgba(0, 0, 0, 0.4);
-  cursor: pointer;
-}
-
-/* Slider Track Fill (Webkit) */
-.enhance-slider::-webkit-slider-runnable-track {
-  height: 5px;
-  border-radius: 3px;
-}
-
-/* Reset Button */
-.enhance-reset-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
-  padding: 0.55rem;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition);
-  text-align: center;
-}
-
-.enhance-reset-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Enhancement button active state */
-.ctrl-btn.enhance-active {
-  color: var(--primary);
-  text-shadow: 0 0 8px rgba(255, 51, 102, 0.6);
-}
-
-/* Enhancement panel inside fullscreen */
-.video-container:fullscreen .enhance-panel,
-.video-container:-webkit-full-screen .enhance-panel {
-  position: fixed;
-  bottom: 5.5rem;
-  right: 1rem;
-  z-index: 110;
-}
-
-/* Responsive Enhancement Panel */
-@media (max-width: 480px) {
-  .enhance-panel {
-    width: calc(100vw - 2rem);
-    right: 0;
-    left: 0;
-    margin: 0 auto;
-    bottom: 4.5rem;
-  }
-  .enhance-presets {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* ========================================================
    FULLSCREEN MODE - Fit to Aspect Ratio
    Video fills the entire screen proportionally (no stretch).
    Works on all screen sizes: TV 1080p, phone 21:9, etc.
@@ -979,7 +948,7 @@ video#main-video-element {
   object-fit: contain;
 }
 
-/* Controls bar stays pinned at bottom in fullscreen */
+/* Controls bar stays pinned at bottom in fullscreen with safe-area */
 .video-container:fullscreen .custom-controls-bar,
 .video-container:-webkit-full-screen .custom-controls-bar {
   position: fixed;
@@ -987,6 +956,9 @@ video#main-video-element {
   left: 0;
   right: 0;
   z-index: 100;
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  padding-left: max(1.5rem, env(safe-area-inset-left));
+  padding-right: max(1.5rem, env(safe-area-inset-right));
 }
 
 /* Loading spinner centered in fullscreen */
@@ -998,22 +970,137 @@ video#main-video-element {
   transform: translate(-50%, -50%);
 }
 
-/* Center play overlay in fullscreen */
-.video-container:fullscreen .center-play-overlay,
-.video-container:-webkit-full-screen .center-play-overlay {
+/* Center controls in fullscreen */
+.video-container:fullscreen .video-center-controls,
+.video-container:-webkit-full-screen .video-center-controls {
   position: fixed;
   inset: 0;
 }
 
-/* Responsive Player */
+/* ========================================================
+   RESPONSIVE DESIGN & MOBILE / IPHONE FIXES
+   ======================================================== */
 @media (max-width: 900px) {
   .player-body {
     flex-direction: column;
   }
   .episode-sidebar {
     width: 100%;
-    max-height: 200px;
+    max-height: 220px;
     border-left: none;
     border-top: 1px solid var(--border-glass);
+  }
+}
+
+/* Mobile & iPhone Safari Viewport Fixes */
+@media (max-width: 640px) {
+  .player-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .player-main-title {
+    font-size: 0.95rem;
+    max-width: calc(100vw - 80px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .player-episode-subtitle {
+    font-size: 0.78rem;
+  }
+
+  .player-close-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  /* Custom Controls Bar - Fit comfortably without horizontal overflow */
+  .custom-controls-bar {
+    padding: 0.85rem 0.75rem max(0.85rem, env(safe-area-inset-bottom));
+    gap: 0.45rem;
+  }
+
+  .controls-main-row {
+    gap: 0.4rem;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .controls-left {
+    gap: 0.35rem;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .controls-right {
+    gap: 0.35rem;
+    flex-shrink: 0;
+  }
+
+  .ctrl-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .time-display {
+    font-size: 0.72rem;
+    letter-spacing: 0;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  /* Sembunyikan slider volume statis di HP (iOS melarang penyesuaian volume JS dan memakai tombol fisik HP) */
+  .volume-slider {
+    display: none !important;
+  }
+
+  .speed-badge-btn, .quality-badge-btn {
+    padding: 0.25rem 0.45rem;
+    font-size: 0.75rem;
+    gap: 0.2rem;
+  }
+
+  /* Center Controls Overlay on Mobile */
+  .video-center-controls {
+    gap: 1.75rem;
+  }
+
+  .center-btn-playpause {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+  }
+
+  .center-btn-skip {
+    width: 46px;
+    height: 46px;
+  }
+
+  .center-btn-skip svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .center-skip-badge {
+    font-size: 0.55rem;
+  }
+
+  /* Seek preview thumbnail for small screens */
+  .seek-preview-thumb {
+    width: 128px;
+    height: 72px;
+  }
+
+  /* Autoplay overlay responsive */
+  .autoplay-countdown-overlay {
+    right: 1rem;
+    left: 1rem;
+    bottom: 5rem;
+    max-width: none;
   }
 }
