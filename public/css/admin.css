@@ -235,6 +235,17 @@
   transform: scale(1);
 }
 
+.modal-box.modal-shake {
+  animation: modalShake 0.35s ease-in-out;
+}
+
+@keyframes modalShake {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.02); }
+  50% { transform: scale(0.985); }
+  75% { transform: scale(1.01); }
+}
+
 .modal-header {
   padding: 1.25rem 1.75rem;
   border-bottom: 1px solid var(--border-glass);
