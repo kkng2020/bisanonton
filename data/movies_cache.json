@@ -1,5 +1,48 @@
 [
   {
+    "id": "mov_1789718135523_mme5b",
+    "title": "The Mongoose (2026)",
+    "description": "The Mongoose - Ryan \"Fang\" Flanagan, seorang veteran perang berprestasi tinggi, mendapati dirinya dalam pelarian berbahaya dari tempat kejadian perkara pembunuhan. Menerobos jalanan dengan kecepatan 130 mil per jam menggunakan mobil Mustang Shelby Super Snake GT350, ia harus berpacu dengan waktu dan menghindari kejaran pihak berwajib serta musuh-musuhnya demi bertahan hidup.",
+    "cover_url": "https://m.media-amazon.com/images/M/MV5BNDBmN2E2YTQtMWE2Ni00ZjMxLWE4NGItODk2ZDZjZDU0MjdlXkEyXkFqcGc@._V1_FMjpg_UY3000_.jpg",
+    "backdrop_url": "https://m.media-amazon.com/images/M/MV5BNDBmN2E2YTQtMWE2Ni00ZjMxLWE4NGItODk2ZDZjZDU0MjdlXkEyXkFqcGc@._V1_FMjpg_UY3000_.jpg",
+    "type": "movie",
+    "year": 2026,
+    "genre": "Action",
+    "stream_url": "https://edge1-waw-sprintcdn.r66nv9ed.com/hls2/09/11950/hij5ifeviawj_x/index-v1-a1.m3u8?t=YIfWGpBfzSbPHBKNlYprKxG23hXLu3IUtyM7hDKbE1Y&s=1789717998&e=10800&f=59751059&srv=1060&asn=7713&sp=5500&p=0",
+    "episodes": [],
+    "created_at": "2026-09-18T07:55:35.523+00:00",
+    "updated_at": "2026-09-18T07:55:35.523+00:00",
+    "is_featured": false
+  },
+  {
+    "id": "mov_1789603993547_arefr",
+    "title": "A Love Other Than Yours (2026) - Season 1",
+    "description": "Sebuah melodrama yang realistis dan mudah dipahami, di mana sepasang kekasih yang sudah akrab harus menghadapi emosi-emosi yang belum pernah mereka rasakan sebelumnya setelah 10 tahun menjalin hubungan.",
+    "cover_url": "https://akcdn.detik.net.id/community/media/visual/2026/08/24/drama-korea-a-love-other-than-yours-1787551287206.jpeg?w=700&q=90",
+    "backdrop_url": "https://akcdn.detik.net.id/community/media/visual/2026/08/24/drama-korea-a-love-other-than-yours-1787551287206.jpeg?w=700&q=90",
+    "type": "series",
+    "year": 2026,
+    "genre": "Mellow Drama",
+    "stream_url": "",
+    "episodes": [
+      {
+        "id": "ep-1789603993733-0",
+        "title": "Episode 1",
+        "stream_url": "https://stream.playcdn.de/playlist/73513d0920384484397655fcf433b045/1/0.m3u8?x=1",
+        "episode_number": 1
+      },
+      {
+        "id": "ep-1789603993733-1",
+        "title": "Episode 2",
+        "stream_url": "https://stream.playcdn.de/playlist/d9697f18207a67d73e8d354e802a9999/1/0.m3u8?x=1",
+        "episode_number": 2
+      }
+    ],
+    "created_at": "2026-09-17T00:13:13.547+00:00",
+    "updated_at": "2026-09-17T00:13:21.972+00:00",
+    "is_featured": true
+  },
+  {
     "id": "mov_1789452458213_h6mud",
     "title": "Minions & Monsters (2026)",
     "description": "Minions & Monsters (2026), minions mencari makhluk menakutkan untuk film monster mereka di Hollywood 1920-an. Mereka bertemu dengan makhluk hijau yang tak terduga dan harus menyelamatkan bumi dari kekacauan monster yang mereka lepas.",
@@ -108,15 +151,15 @@
     "id": "mov_1789139332468_p70pd",
     "title": "Moana (2026)",
     "description": "Moana - Seorang remaja perempuan yang pemberani bernama Moana meninggalkan pulainya untuk pertama kalinya dan berlayar mengarungi samudra bersama seorang manusia setengah dewa yang bisa berubah wujud bernama Maui. Bersama-sama, mereka melintasi bahaya laut lepas demi memperbaiki kutukan berbahaya yang mengancam kehidupan bangsa mereka.",
-    "cover_url": "https://instagram.fcgk27-2.fna.fbcdn.net/v/t51.82787-15/656288754_18569216155049007_7726964422300676605_n.webp?_nc_cat=105&ig_cache_key=Mzg1OTMwNzA5MzY4MTA0OTI1Mg%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkNBUk9VU0VMX0lURU0ueHBpZHMuMTQ0MC5zZHIucmVndWxhcl9waG90by5DMiJ9&_nc_ohc=sDJKMjz-KNsQ7kNvwEayG_v&_nc_oc=Adop9bWq8OZEXtLITHf9p0n76WYxW3Cp8NbxhBprhxQhqCEqrrjSTCmpybSE2mCfGfM&_nc_zt=23&_nc_ht=instagram.fcgk27-2.fna&_nc_gid=4VUgzmouQ6ADcNAseo1e1w&_nc_ss=7b689&oh=00_AQIANZeQvjWmkzwJJo8WB8PJWfucaGEeWa2z0-fHLvI8Nw&oe=6AA9FE73",
-    "backdrop_url": "https://instagram.fcgk27-2.fna.fbcdn.net/v/t51.82787-15/656288754_18569216155049007_7726964422300676605_n.webp?_nc_cat=105&ig_cache_key=Mzg1OTMwNzA5MzY4MTA0OTI1Mg%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkNBUk9VU0VMX0lURU0ueHBpZHMuMTQ0MC5zZHIucmVndWxhcl9waG90by5DMiJ9&_nc_ohc=sDJKMjz-KNsQ7kNvwEayG_v&_nc_oc=Adop9bWq8OZEXtLITHf9p0n76WYxW3Cp8NbxhBprhxQhqCEqrrjSTCmpybSE2mCfGfM&_nc_zt=23&_nc_ht=instagram.fcgk27-2.fna&_nc_gid=4VUgzmouQ6ADcNAseo1e1w&_nc_ss=7b689&oh=00_AQIANZeQvjWmkzwJJo8WB8PJWfucaGEeWa2z0-fHLvI8Nw&oe=6AA9FE73",
+    "cover_url": "https://m.media-amazon.com/images/M/MV5BMTQ1OTQ2Y2UtMzllNS00ODFiLWFkNGItNGRjOWRlMjIwNTRlXkEyXkFqcGc@._V1_FMjpg_UX1086_.jpg",
+    "backdrop_url": "https://m.media-amazon.com/images/M/MV5BMTQ1OTQ2Y2UtMzllNS00ODFiLWFkNGItNGRjOWRlMjIwNTRlXkEyXkFqcGc@._V1_FMjpg_UX1086_.jpg",
     "type": "movie",
     "year": 2026,
-    "genre": "Favorit",
+    "genre": "Action",
     "stream_url": "https://stream.playcdn.de/playlist/d1c03ae96f93f573e323669704e04abb/1/0.m3u8?x=1",
     "episodes": [],
     "created_at": "2026-09-11T15:08:52.468+00:00",
-    "updated_at": "2026-09-16T04:19:00.842+00:00",
+    "updated_at": "2026-09-17T00:19:58.336+00:00",
     "is_featured": true
   },
   {
@@ -146,80 +189,92 @@
     "stream_url": "",
     "episodes": [
       {
-        "id": "ep-1789451885951-0",
+        "id": "ep-1789553969390-0",
         "title": "Episode 1",
         "stream_url": "https://stream.playcdn.de/playlist/f6d90656d4868a0eddebc7674872ea9a/3/480.m3u8?x=1",
         "episode_number": 1
       },
       {
-        "id": "ep-1789451885951-1",
+        "id": "ep-1789553969390-1",
         "title": "Episode 2",
         "stream_url": "https://stream.playcdn.de/playlist/5329cfd44b363b69c117afbcadb491f2/3/480.m3u8?x=1",
         "episode_number": 2
       },
       {
-        "id": "ep-1789451885951-2",
+        "id": "ep-1789553969390-2",
         "title": "Episode 3",
         "stream_url": "https://stream.playcdn.de/playlist/4315171679d0c7b7897dd2712b47e8c0/3/480.m3u8?x=1",
         "episode_number": 3
       },
       {
-        "id": "ep-1789451885951-3",
+        "id": "ep-1789553969390-3",
         "title": "Episode 4",
         "stream_url": "https://stream.playcdn.de/playlist/cd38e61bf15b580aa59122abd28f5090/3/480.m3u8?x=1",
         "episode_number": 4
       },
       {
-        "id": "ep-1789451885951-4",
+        "id": "ep-1789553969390-4",
         "title": "Episode 5",
         "stream_url": "https://stream.playcdn.de/playlist/3a409c2057d85064b10b2b4abd811814/3/480.m3u8?x=1",
         "episode_number": 5
       },
       {
-        "id": "ep-1789451885951-5",
+        "id": "ep-1789553969390-5",
         "title": "Episode 6",
         "stream_url": "https://stream.playcdn.de/playlist/cf705e4898b7359bdc6482998d85e9f6/3/480.m3u8?x=1",
         "episode_number": 6
       },
       {
-        "id": "ep-1789451885951-6",
+        "id": "ep-1789553969390-6",
         "title": "Episode 7",
         "stream_url": "https://stream.playcdn.de/playlist/c081b206a7b8982b77b26ba9c291a654/3/0.m3u8?x=1",
         "episode_number": 7
       },
       {
-        "id": "ep-1789451885951-7",
+        "id": "ep-1789553969390-7",
         "title": "Episode 8",
         "stream_url": "https://stream.playcdn.de/playlist/0f24e7083c3570da8f6f40adadd24acd/3/0.m3u8?x=1",
         "episode_number": 8
       },
       {
-        "id": "ep-1789451885951-8",
+        "id": "ep-1789553969390-8",
         "title": "Episode 9",
         "stream_url": "https://stream.playcdn.de/playlist/df606e81c59d782aeb1f58039b4b7464/1/0.m3u8?x=1",
         "episode_number": 9
       },
       {
-        "id": "ep-1789451885951-9",
+        "id": "ep-1789553969390-9",
         "title": "Episode 10",
         "stream_url": "https://stream.playcdn.de/playlist/292f52e35d13eda8cf92cce0ec7cd013/1/0.m3u8?x=1",
         "episode_number": 10
       },
       {
-        "id": "ep-1789451885951-10",
+        "id": "ep-1789553969390-10",
         "title": "Episode 11",
         "stream_url": "https://stream.playcdn.de/playlist/ba4d3a53703d4ee69dc6eae006af9ac1/1/0.m3u8?x=1",
         "episode_number": 11
       },
       {
-        "id": "ep-1789451885951-11",
+        "id": "ep-1789553969390-11",
         "title": "Episode 12",
         "stream_url": "https://stream.playcdn.de/playlist/18d54f49d01d00bfdf1ff0cb985f05b6/1/0.m3u8?x=1",
         "episode_number": 12
+      },
+      {
+        "id": "ep-1789553969390-12",
+        "title": "Episode 13",
+        "stream_url": "https://stream.playcdn.de/playlist/6fb549f982b9f866dd66bcbaf3d5ecc8/1/0.m3u8?x=1",
+        "episode_number": 13
+      },
+      {
+        "id": "ep-1789553969390-13",
+        "title": "Episode 14",
+        "stream_url": "https://stream.playcdn.de/playlist/c4e46df0b01e0d0f1ada5c5dddc51853/1/0.m3u8?x=1",
+        "episode_number": 14
       }
     ],
     "created_at": "2026-09-11T13:55:49.248+00:00",
-    "updated_at": "2026-09-15T05:58:07.738+00:00",
+    "updated_at": "2026-09-16T10:19:29.658+00:00",
     "is_featured": false
   }
 ]
