@@ -112,6 +112,105 @@ video#main-video-element {
 }
 
 /* ========================================================
+   VIDEO TOP OVERLAY (Judul Film & Episode saat diklik/aktif)
+   ======================================================== */
+.player-header {
+  display: none !important; /* Tergantikan secara elegan oleh video-top-overlay langsung di dalam video ala Netflix */
+}
+
+.video-top-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, rgba(5, 7, 12, 0.92) 0%, rgba(5, 7, 12, 0.55) 60%, transparent 100%);
+  padding: 1.25rem 1.75rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  z-index: 25;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.video-container.user-idle .video-top-overlay {
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+}
+
+.video-overlay-back-btn {
+  background: rgba(14, 18, 28, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: var(--transition);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.video-overlay-back-btn:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  transform: scale(1.08);
+}
+
+.video-overlay-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  overflow: hidden;
+  max-width: calc(100% - 70px);
+}
+
+.video-overlay-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+  margin: 0;
+  line-height: 1.25;
+}
+
+.video-overlay-subtitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ff6b8b;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+/* Fullscreen support for video-top-overlay */
+.video-container:fullscreen .video-top-overlay,
+.video-container:-webkit-full-screen .video-top-overlay,
+.video-container.fullscreen-active .video-top-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding-top: max(1.25rem, env(safe-area-inset-top));
+  padding-left: max(1.75rem, env(safe-area-inset-left));
+  padding-right: max(1.75rem, env(safe-area-inset-right));
+  z-index: 100;
+}
+
+/* ========================================================
    CENTER OVERLAY CONTROLS (Transparent with 3 Action Buttons)
    ======================================================== */
 .video-center-controls {
@@ -212,6 +311,17 @@ video#main-video-element {
   align-items: center;
   justify-content: center;
   line-height: 1;
+}
+
+.center-btn-playpause svg {
+  width: 32px;
+  height: 32px;
+  fill: #fff;
+  display: block;
+}
+
+.center-btn-playpause svg path {
+  fill: #fff;
 }
 
 /* Skip 10s Buttons (Kiri & Kanan) */
@@ -468,6 +578,12 @@ video#main-video-element {
 .ctrl-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+.ctrl-btn svg {
+  display: block;
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 /* Skip 10s Buttons */
