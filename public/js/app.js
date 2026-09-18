@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSearch();
   setupScrollHandler();
   setupPlayerModalSync();
+  initPreviewModalEvents();
 
   // Sinkronkan progress tontonan secara realtime jika ada perubahan di player
   window.addEventListener('storage', () => {
@@ -348,10 +349,10 @@ function updateHeroDots() {
 function updateHeroSoundUI(isUnmuted) {
   if (!heroSoundIcon) return;
   if (isUnmuted) {
-    heroSoundIcon.textContent = '🔊';
+    heroSoundIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
     if (heroSoundToggle) heroSoundToggle.title = 'Matikan Suara Cuplikan';
   } else {
-    heroSoundIcon.textContent = '🔇';
+    heroSoundIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
     if (heroSoundToggle) heroSoundToggle.title = 'Nyalakan Suara Cuplikan (Volume 70%)';
   }
 }
@@ -701,14 +702,12 @@ function renderHeroSlide(index) {
     const newPlayBtn = playBtn.cloneNode(true);
     playBtn.parentNode.replaceChild(newPlayBtn, playBtn);
     newPlayBtn.addEventListener('click', () => {
-      // Matikan preview saat modal player utama dibuka
+      // Matikan preview saat modal dibuka
       if (heroVideoEl) {
         heroVideoEl.pause();
         fadeHeroAudioOut(true);
       }
-      if (window.playerInstance) {
-        window.playerInstance.open(movie);
-      }
+      openPreviewModal(movie);
     });
   }
 
@@ -778,7 +777,9 @@ function renderCatalog() {
         <span class="card-badge ${badgeClass}">${badgeText}</span>
         <img src="${item.cover_url || defaultCover}" alt="${item.title}" loading="lazy" onerror="this.src='${defaultCover}'">
         <div class="card-overlay">
-          <div class="card-play-btn">▶</div>
+          <div class="card-play-btn">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M8 5v14l11-7z"/></svg>
+          </div>
         </div>
         ${progressHtml}
       </div>
@@ -797,9 +798,7 @@ function renderCatalog() {
         heroVideoEl.pause();
         fadeHeroAudioOut(true);
       }
-      if (window.playerInstance) {
-        window.playerInstance.open(item);
-      }
+      openPreviewModal(item);
     });
 
     grid.appendChild(card);
@@ -884,15 +883,22 @@ function setupScrollHandler() {
 // Sinkronisasi dengan Modal Player agar preview hero otomatis resume saat player ditutup
 function setupPlayerModalSync() {
   const playerCloseBtn = document.getElementById('playerCloseBtn');
+  const videoOverlayBackBtn = document.getElementById('videoOverlayBackBtn');
+
+  const onPlayerClosed = () => {
+    setTimeout(() => {
+      const scrollY = window.scrollY || window.pageYOffset;
+      if (heroVideoEl && scrollY < 300) {
+        heroVideoEl.play().catch(() => { });
+      }
+    }, 400);
+  };
+
   if (playerCloseBtn) {
-    playerCloseBtn.addEventListener('click', () => {
-      setTimeout(() => {
-        const scrollY = window.scrollY || window.pageYOffset;
-        if (heroVideoEl && scrollY < 300) {
-          heroVideoEl.play().catch(() => { });
-        }
-      }, 400);
-    });
+    playerCloseBtn.addEventListener('click', onPlayerClosed);
+  }
+  if (videoOverlayBackBtn) {
+    videoOverlayBackBtn.addEventListener('click', onPlayerClosed);
   }
 }
 
@@ -905,4 +911,196 @@ function showErrorState(message) {
       <p style="margin-top: 0.5rem; color: var(--text-dim);">${message}</p>
     </div>
   `;
+}
+
+// ========================================================
+// NETFLIX-STYLE PREVIEW MODAL CONTROLLER
+// ========================================================
+let currentPreviewItem = null;
+
+function initPreviewModalEvents() {
+  const backdrop = document.getElementById('previewBackdrop');
+  const closeBtn = document.getElementById('previewCloseBtn');
+
+  if (backdrop) {
+    backdrop.addEventListener('click', () => closePreviewModal());
+  }
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => closePreviewModal());
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('previewModal');
+      if (modal && modal.classList.contains('active')) {
+        closePreviewModal();
+      }
+    }
+  });
+}
+
+function openPreviewModal(item) {
+  currentPreviewItem = item;
+  const modal = document.getElementById('previewModal');
+  if (!modal) return;
+
+  // Pause preview cuplikan hero jika sedang berputar
+  if (heroVideoEl) {
+    heroVideoEl.pause();
+    fadeHeroAudioOut(true);
+  }
+
+  const bgImg = item.backdrop_url || item.cover_url || '';
+  const billboardBg = document.getElementById('previewBillboardBg');
+  if (billboardBg) {
+    billboardBg.style.backgroundImage = bgImg ? `url('${bgImg}')` : '';
+  }
+
+  const typeBadge = document.getElementById('previewTypeBadge');
+  if (typeBadge) {
+    typeBadge.textContent = item.type === 'series' ? 'SERIAL TV' : 'FILM';
+  }
+
+  const titleEl = document.getElementById('previewTitle');
+  if (titleEl) titleEl.textContent = item.title;
+
+  const yearEl = document.getElementById('previewYear');
+  if (yearEl) yearEl.textContent = item.year || '2026';
+
+  const genreEl = document.getElementById('previewGenre');
+  if (genreEl) genreEl.textContent = item.genre || 'Favorit';
+
+  const synopsisEl = document.getElementById('previewSynopsis');
+  if (synopsisEl) {
+    synopsisEl.textContent = item.description || 'Tidak ada sinopsis tersedia untuk judul ini.';
+  }
+
+  // Setup tombol utama "Putar Sekarang"
+  const playBtn = document.getElementById('previewPlayBtn');
+  const playBtnText = document.getElementById('previewPlayBtnText');
+  const epSection = document.getElementById('previewEpisodeSection');
+  const epList = document.getElementById('previewEpisodeList');
+  const epCountBadge = document.getElementById('previewEpCount');
+
+  const isSeries = item.type === 'series';
+
+  if (isSeries) {
+    const episodes = Array.isArray(item.episodes) ? item.episodes : [];
+    if (epCountBadge) epCountBadge.textContent = `${episodes.length} Episode`;
+
+    // Cek episode terakhir yang ditonton
+    let startEpIndex = 0;
+    try {
+      const saved = localStorage.getItem(`bisanonton_progress_${item.id}`);
+      if (saved) {
+        const progData = JSON.parse(saved);
+        if (progData && typeof progData.episodeIndex === 'number' && progData.episodeIndex < episodes.length) {
+          startEpIndex = progData.episodeIndex;
+        }
+      }
+    } catch (e) {}
+
+    if (playBtnText) {
+      playBtnText.textContent = startEpIndex > 0 ? `Lanjutkan Ep ${startEpIndex + 1}` : 'Putar Episode 1';
+    }
+
+    if (playBtn) {
+      playBtn.onclick = () => {
+        closePreviewModal();
+        if (window.playerInstance) {
+          window.playerInstance.open(item, startEpIndex);
+        }
+      };
+    }
+
+    // Render daftar episode
+    if (epSection) epSection.style.display = 'block';
+    if (epList) {
+      epList.innerHTML = '';
+      if (episodes.length === 0) {
+        epList.innerHTML = `
+          <div style="text-align: center; padding: 1.5rem; color: var(--text-dim); font-size: 0.85rem;">
+            Belum ada episode yang ditambahkan untuk serial ini.
+          </div>
+        `;
+      } else {
+        const movieId = item.id || item.title;
+        episodes.forEach((ep, idx) => {
+          const card = document.createElement('div');
+          card.className = 'preview-ep-card';
+
+          const epKey = `bisanonton_prog_${movieId}_ep_${idx}`;
+          let progSubtitle = 'Putar episode';
+          try {
+            const raw = localStorage.getItem(epKey);
+            if (raw) {
+              const p = JSON.parse(raw);
+              if (p && p.percent) {
+                if (p.percent >= 92) {
+                  progSubtitle = '✓ Selesai Ditonton';
+                } else if (p.percent >= 3) {
+                  progSubtitle = `Ditonton ${p.percent}%`;
+                }
+              }
+            }
+          } catch (e) {}
+
+          card.innerHTML = `
+            <div class="preview-ep-num">${ep.episode_number || (idx + 1)}</div>
+            <div class="preview-ep-info">
+              <div class="preview-ep-title">${ep.title || `Episode ${idx + 1}`}</div>
+              <div class="preview-ep-subtitle">${progSubtitle}</div>
+            </div>
+            <div class="preview-ep-play-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+          `;
+
+          card.addEventListener('click', () => {
+            closePreviewModal();
+            if (window.playerInstance) {
+              window.playerInstance.open(item, idx);
+            }
+          });
+
+          epList.appendChild(card);
+        });
+      }
+    }
+  } else {
+    // Film Biasa
+    if (epSection) epSection.style.display = 'none';
+    if (playBtnText) playBtnText.textContent = 'Putar Sekarang';
+    if (playBtn) {
+      playBtn.onclick = () => {
+        closePreviewModal();
+        if (window.playerInstance) {
+          window.playerInstance.open(item);
+        }
+      };
+    }
+  }
+
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closePreviewModal() {
+  const modal = document.getElementById('previewModal');
+  if (!modal) return;
+  modal.classList.remove('active');
+
+  // Kembalikan overflow body hanya jika player modal tidak sedang aktif
+  const playerModal = document.getElementById('playerModal');
+  if (!playerModal || !playerModal.classList.contains('active')) {
+    document.body.style.overflow = '';
+  }
+
+  // Resume hero video preview jika masih di bagian atas halaman
+  setTimeout(() => {
+    const scrollY = window.scrollY || window.pageYOffset;
+    if (heroVideoEl && scrollY < 300 && (!playerModal || !playerModal.classList.contains('active'))) {
+      heroVideoEl.play().catch(() => {});
+    }
+  }, 300);
 }
