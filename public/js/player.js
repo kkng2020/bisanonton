@@ -17,6 +17,12 @@ class BisaPlayer {
     this.playerSubtitle = document.getElementById('playerSubtitle');
     this.loadingSpinner = document.getElementById('videoLoadingSpinner');
 
+    // Video Top Overlay (Header di dalam video saat diklik/aktif)
+    this.videoTopOverlay = document.getElementById('videoTopOverlay');
+    this.videoOverlayBackBtn = document.getElementById('videoOverlayBackBtn');
+    this.videoOverlayTitle = document.getElementById('videoOverlayTitle');
+    this.videoOverlaySubtitle = document.getElementById('videoOverlaySubtitle');
+
     // Center Controls Overlay
     this.centerControls = document.getElementById('centerControlsOverlay');
     this.centerBtnPlayPause = document.getElementById('centerBtnPlayPause');
@@ -81,7 +87,17 @@ class BisaPlayer {
 
   initEvents() {
     // Modal Close
-    this.closeBtn.addEventListener('click', () => this.close());
+    if (this.closeBtn) {
+      this.closeBtn.addEventListener('click', () => this.close());
+    }
+
+    // Video Top Overlay Back Button
+    if (this.videoOverlayBackBtn) {
+      this.videoOverlayBackBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.close();
+      });
+    }
 
     // Play / Pause Toggle Buttons
     if (this.btnPlayPause) {
@@ -373,9 +389,13 @@ class BisaPlayer {
   }
 
   updatePlayPauseIcons(isPlaying) {
-    const icon = isPlaying ? '⏸' : '▶';
-    if (this.btnPlayPause) this.btnPlayPause.textContent = icon;
-    if (this.centerPlayIcon) this.centerPlayIcon.textContent = icon;
+    const playSvg = '<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M8 5v14l11-7z"/></svg>';
+    const pauseSvg = '<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+    const centerPlaySvg = '<svg viewBox="0 0 24 24" fill="currentColor" width="30" height="30"><path d="M8 5v14l11-7z"/></svg>';
+    const centerPauseSvg = '<svg viewBox="0 0 24 24" fill="currentColor" width="30" height="30"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+
+    if (this.btnPlayPause) this.btnPlayPause.innerHTML = isPlaying ? pauseSvg : playSvg;
+    if (this.centerPlayIcon) this.centerPlayIcon.innerHTML = isPlaying ? centerPauseSvg : centerPlaySvg;
   }
 
   // Buka Pemutar Film/Serial
@@ -385,6 +405,10 @@ class BisaPlayer {
     document.body.style.overflow = 'hidden';
 
     this.playerTitle.textContent = item.title;
+    if (this.videoOverlayTitle) {
+      this.videoOverlayTitle.textContent = item.title;
+    }
+
     this.videoContainer.classList.add('is-paused');
     this.videoContainer.classList.remove('user-idle');
     this.updatePlayPauseIcons(false);
@@ -411,12 +435,21 @@ class BisaPlayer {
       }
 
       this.currentEpisodeIndex = targetIndex;
+      const currentEp = (item.episodes || [])[targetIndex];
+      const epLabel = currentEp && currentEp.title ? currentEp.title : `Episode ${targetIndex + 1}`;
+      if (this.videoOverlaySubtitle) {
+        this.videoOverlaySubtitle.textContent = epLabel;
+      }
+
       this.renderEpisodeList();
       this.playEpisode(targetIndex);
     } else {
       this.currentEpisodeIndex = 0;
       this.sidebar.classList.add('hidden');
       this.playerSubtitle.textContent = item.genre || 'Film';
+      if (this.videoOverlaySubtitle) {
+        this.videoOverlaySubtitle.textContent = item.genre || 'Film';
+      }
       if (this.btnPrevEp) this.btnPrevEp.disabled = true;
       if (this.btnNextEp) this.btnNextEp.disabled = true;
       this.loadStream(item.stream_url);
@@ -631,8 +664,15 @@ class BisaPlayer {
 
     this.currentEpisodeIndex = index;
     const currentEp = episodes[index];
+    const epLabel = currentEp.title || `Episode ${index + 1}`;
 
-    this.playerSubtitle.textContent = `${currentEp.title || `Episode ${index + 1}`}`;
+    this.playerSubtitle.textContent = epLabel;
+    if (this.videoOverlayTitle && this.currentItem) {
+      this.videoOverlayTitle.textContent = this.currentItem.title;
+    }
+    if (this.videoOverlaySubtitle) {
+      this.videoOverlaySubtitle.textContent = epLabel;
+    }
 
     // Update active class & progress bar di sidebar
     this.renderEpisodeList();
@@ -1050,8 +1090,8 @@ class BisaPlayer {
         if (!this.video.duration || data.time < this.video.duration * 0.92) {
           this.video.currentTime = data.time;
           const label = this.currentItem.type === 'series'
-            ? `Episode ${(this.currentEpisodeIndex + 1)} dari <strong>${this.formatTime(data.time)}</strong> ⏱️`
-            : `dari <strong>${this.formatTime(data.time)}</strong> ⏱️`;
+            ? `Episode ${(this.currentEpisodeIndex + 1)} dari <strong>${this.formatTime(data.time)}</strong>`
+            : `dari <strong>${this.formatTime(data.time)}</strong>`;
           this.showResumeToast(data.time, label);
           return true;
         }
@@ -1068,7 +1108,7 @@ class BisaPlayer {
     const toastMsg = document.getElementById('toastMsg');
     if (!toast || !toastMsg) return;
 
-    const labelText = customLabel || `dari <strong>${formatted}</strong> ⏱️`;
+    const labelText = customLabel || `dari <strong>${formatted}</strong>`;
     toastMsg.innerHTML = `
       <span>Melanjutkan ${labelText}</span>
       <button id="btnRestartPlayback" style="margin-left:10px;padding:3px 9px;background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:4px;cursor:pointer;font-size:0.75rem;font-weight:700;">Ulang (00:00)</button>
@@ -1106,11 +1146,11 @@ class BisaPlayer {
   updateVolumeIcon() {
     if (!this.btnMute) return;
     if (this.video.muted || this.video.volume === 0) {
-      this.btnMute.textContent = '🔇';
+      this.btnMute.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
     } else if (this.video.volume < 0.5) {
-      this.btnMute.textContent = '🔉';
+      this.btnMute.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
     } else {
-      this.btnMute.textContent = '🔊';
+      this.btnMute.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
     }
   }
 
@@ -1243,12 +1283,14 @@ class BisaPlayer {
       this.videoContainer.classList.add('fullscreen-active');
       if (this.btnFullscreen) {
         this.btnFullscreen.title = 'Keluar Layar Penuh (F)';
+        this.btnFullscreen.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>';
       }
       this.lockOrientationLandscape();
     } else {
       this.videoContainer.classList.remove('fullscreen-active');
       if (this.btnFullscreen) {
         this.btnFullscreen.title = 'Layar Penuh (F)';
+        this.btnFullscreen.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>';
       }
       this.unlockOrientation();
     }
