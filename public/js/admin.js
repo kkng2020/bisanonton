@@ -439,7 +439,7 @@ function addEpisodeRow(num, title = '', url = '') {
   row.innerHTML = `
     <input type="number" class="form-control ep-num" value="${epNum}" placeholder="Ep #" title="Nomor Episode" style="text-align: center;">
     <input type="text" class="form-control ep-title" value="${title || `Episode ${epNum}`}" placeholder="Judul Episode">
-    <input type="url" class="form-control ep-url" value="${url || ''}" placeholder="Link stream .m3u8" required>
+    <input type="url" class="form-control ep-url" value="${url || ''}" placeholder="Link stream .m3u8 / Google Drive" required>
     <button type="button" class="del-ep-btn" title="Hapus Episode">✕</button>
   `;
 
