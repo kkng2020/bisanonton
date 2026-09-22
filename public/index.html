@@ -182,8 +182,11 @@
     <div class="player-body">
       <div class="player-video-section">
         <div class="video-container" id="videoContainer">
-          <!-- Main Video Element -->
+          <!-- Main Video Element (HLS / MP4) -->
           <video id="main-video-element" playsinline webkit-playsinline></video>
+
+          <!-- Main Iframe Element (Google Drive / Embed Video) -->
+          <iframe id="main-iframe-element" class="main-iframe-element" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" style="display: none;"></iframe>
 
           <!-- Video Top Overlay Header (Judul Film & Episode saat diklik/aktif) -->
           <div class="video-top-overlay" id="videoTopOverlay">
@@ -194,6 +197,10 @@
               <h2 class="video-overlay-title" id="videoOverlayTitle">Judul Video</h2>
               <span class="video-overlay-subtitle" id="videoOverlaySubtitle">Memutar...</span>
             </div>
+            <!-- Fullscreen Button di Top Bar -->
+            <button class="video-overlay-fs-btn" id="videoOverlayFsBtn" title="Layar Penuh (F)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+            </button>
           </div>
 
           <!-- Video Center Controls Overlay (Transparent with 3 action buttons) -->
