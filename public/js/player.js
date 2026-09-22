@@ -12,6 +12,8 @@ class BisaPlayer {
     this.modal = document.getElementById('playerModal');
     this.videoContainer = document.getElementById('videoContainer');
     this.video = document.getElementById('main-video-element');
+    this.iframe = document.getElementById('main-iframe-element');
+    this.isIframeMode = false;
     this.closeBtn = document.getElementById('playerCloseBtn');
     this.playerTitle = document.getElementById('playerTitle');
     this.playerSubtitle = document.getElementById('playerSubtitle');
@@ -22,6 +24,7 @@ class BisaPlayer {
     this.videoOverlayBackBtn = document.getElementById('videoOverlayBackBtn');
     this.videoOverlayTitle = document.getElementById('videoOverlayTitle');
     this.videoOverlaySubtitle = document.getElementById('videoOverlaySubtitle');
+    this.videoOverlayFsBtn = document.getElementById('videoOverlayFsBtn');
 
     // Center Controls Overlay
     this.centerControls = document.getElementById('centerControlsOverlay');
@@ -99,6 +102,14 @@ class BisaPlayer {
       });
     }
 
+    // Video Top Overlay Fullscreen Button
+    if (this.videoOverlayFsBtn) {
+      this.videoOverlayFsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleFullscreen();
+      });
+    }
+
     // Play / Pause Toggle Buttons
     if (this.btnPlayPause) {
       this.btnPlayPause.addEventListener('click', (e) => {
@@ -133,6 +144,9 @@ class BisaPlayer {
 
     // Menekan area video: jika paused langsung play, jika playing munculkan kontrol tanpa pause
     this.videoContainer.addEventListener('click', (e) => {
+      // Abaikan jika dalam mode Google Drive iframe
+      if (this.isIframeMode) return;
+
       // Abaikan jika klik terjadi pada tombol kontrol langsung
       if (
         e.target.closest('.center-btn') || 
@@ -324,6 +338,12 @@ class BisaPlayer {
 
       if (e.key === 'Escape') {
         this.close();
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        this.toggleFullscreen();
+      } else if (this.isIframeMode) {
+        // Mode Google Drive iframe menggunakan kontrol pemutar bawaan Google Drive
+        return;
       } else if (e.key === ' ' || e.code === 'Space') {
         e.preventDefault();
         this.togglePlay();
@@ -456,7 +476,37 @@ class BisaPlayer {
     }
   }
 
-  // Muat stream URL menggunakan HLS.js
+  // Deteksi dan ekstrak embed URL Google Drive
+  extractGoogleDriveEmbedUrl(url) {
+    if (!url) return null;
+    const str = url.trim();
+
+    // Cek domain Google Drive
+    if (!str.includes('drive.google.com') && !str.includes('docs.google.com')) {
+      return null;
+    }
+
+    // Pola 1: /file/d/{FILE_ID}/...
+    const matchFileD = str.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (matchFileD && matchFileD[1]) {
+      return `https://drive.google.com/file/d/${matchFileD[1]}/preview`;
+    }
+
+    // Pola 2: ?id={FILE_ID} atau &id={FILE_ID}
+    const matchId = str.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (matchId && matchId[1]) {
+      return `https://drive.google.com/file/d/${matchId[1]}/preview`;
+    }
+
+    // Jika sudah berupa /preview
+    if (str.includes('/preview')) {
+      return str;
+    }
+
+    return null;
+  }
+
+  // Muat stream URL menggunakan HLS.js atau Google Drive Iframe
   loadStream(url) {
     this.cancelAutoplay();
     this.showLoading(true);
@@ -477,6 +527,46 @@ class BisaPlayer {
       this.previewHls = null;
     }
     this.previewStreamLoaded = false;
+
+    // Cek apakah URL merupakan video dari Google Drive
+    const gdriveEmbedUrl = this.extractGoogleDriveEmbedUrl(url);
+
+    if (gdriveEmbedUrl) {
+      // === MODE GOOGLE DRIVE (EMBED IFRAME) ===
+      this.isIframeMode = true;
+      this.videoContainer.classList.add('is-iframe-mode');
+
+      // Hentikan dan sembunyikan video HTML5
+      if (this.video) {
+        this.video.pause();
+        this.video.removeAttribute('src');
+        this.video.style.display = 'none';
+      }
+
+      // Tampilkan iframe dan muat link Google Drive preview
+      if (this.iframe) {
+        this.iframe.style.display = 'block';
+        this.iframe.src = gdriveEmbedUrl;
+        this.iframe.onload = () => {
+          this.showLoading(false);
+        };
+      } else {
+        this.showLoading(false);
+      }
+      return;
+    }
+
+    // === MODE HLS / DIRECT VIDEO NATIVE ===
+    this.isIframeMode = false;
+    this.videoContainer.classList.remove('is-iframe-mode');
+
+    if (this.iframe) {
+      this.iframe.src = '';
+      this.iframe.style.display = 'none';
+    }
+    if (this.video) {
+      this.video.style.display = 'block';
+    }
 
     // Gunakan streaming proxy untuk link eksternal agar bebas dari blokir CORS CDN
     let streamUrl = url.trim();
@@ -649,6 +739,9 @@ class BisaPlayer {
       this.video.pause();
       this.video.removeAttribute('src');
       this.video.currentTime = 0;
+    }
+    if (this.iframe) {
+      this.iframe.src = '';
     }
 
     // 3. Hancurkan instance HLS lama agar tidak bentrok dengan stream episode baru
@@ -1285,12 +1378,20 @@ class BisaPlayer {
         this.btnFullscreen.title = 'Keluar Layar Penuh (F)';
         this.btnFullscreen.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>';
       }
+      if (this.videoOverlayFsBtn) {
+        this.videoOverlayFsBtn.title = 'Keluar Layar Penuh (F)';
+        this.videoOverlayFsBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>';
+      }
       this.lockOrientationLandscape();
     } else {
       this.videoContainer.classList.remove('fullscreen-active');
       if (this.btnFullscreen) {
         this.btnFullscreen.title = 'Layar Penuh (F)';
         this.btnFullscreen.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>';
+      }
+      if (this.videoOverlayFsBtn) {
+        this.videoOverlayFsBtn.title = 'Layar Penuh (F)';
+        this.videoOverlayFsBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>';
       }
       this.unlockOrientation();
     }
@@ -1323,8 +1424,24 @@ class BisaPlayer {
     this.unlockOrientation();
     this.saveWatchProgress();
     this.cancelAutoplay();
+
+    // Hentikan video HTML5
     this.video.pause();
     this.video.src = '';
+
+    // Hentikan dan bersihkan iframe Google Drive
+    if (this.iframe) {
+      this.iframe.src = '';
+      this.iframe.style.display = 'none';
+    }
+    if (this.videoContainer) {
+      this.videoContainer.classList.remove('is-iframe-mode');
+    }
+    this.isIframeMode = false;
+    if (this.video) {
+      this.video.style.display = 'block';
+    }
+
     if (this.hls) {
       this.hls.destroy();
       this.hls = null;
